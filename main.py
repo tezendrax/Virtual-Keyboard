@@ -164,7 +164,7 @@ def drawTextBox(img, text, isCaps):
     cv2.addWeighted(overlay, alpha, img, 1 - alpha, 0, img)
     return img
 
-print("Initializing camera feed... Hover index finger to target keys. Pinch index & middle finger tips to type.")
+print("Initializing camera feed... Hover index finger to target keys. Pinch index & thumb tips to type.")
 
 while True:
     success, img = cap.read()
@@ -205,18 +205,18 @@ while True:
                 
     # Detect and handle click event
     if active_button and lmList:
-        # lmList[8] (index tip) and lmList[12] (middle tip)
+        # lmList[8] (index tip) and lmList[4] (thumb tip)
         idx_x, idx_y = lmList[8][0], lmList[8][1]
-        mid_x, mid_y = lmList[12][0], lmList[12][1]
+        thumb_x, thumb_y = lmList[4][0], lmList[4][1]
         
         # Calculate Euclidean distance
-        distance = np.hypot(idx_x - mid_x, idx_y - mid_y)
+        distance = np.hypot(idx_x - thumb_x, idx_y - thumb_y)
         
         # Draw interaction indicator lines
         color = (100, 255, 100) if distance < 35 else (0, 165, 255) # Green when close to clicking, Orange when far
-        cv2.line(img, (idx_x, idx_y), (mid_x, mid_y), color, 3)
+        cv2.line(img, (idx_x, idx_y), (thumb_x, thumb_y), color, 3)
         cv2.circle(img, (idx_x, idx_y), 7, color, cv2.FILLED)
-        cv2.circle(img, (mid_x, mid_y), 7, color, cv2.FILLED)
+        cv2.circle(img, (thumb_x, thumb_y), 7, color, cv2.FILLED)
         
         # Trigger typing logic on click gesture (< 35px)
         current_time = time.time()
