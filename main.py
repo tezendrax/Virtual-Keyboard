@@ -37,42 +37,35 @@ keys_row3 = ["Z", "X", "C", "V", "B", "N", "M", ",", ".", "/"]
 buttonList = []
 
 # Populate standard keys (Centered layout)
-# Total keyboard width is around 940px (10 buttons of 85px width + 10px gaps)
-start_x = 170
-gap = 10
+# Total keyboard width is around 1008px (10 buttons of 90px width + 12px gaps)
+start_x = 136
+gap = 12
 
 for j, key in enumerate(keys_row1):
-    buttonList.append(Button([start_x + j * 95, 150], key))
+    buttonList.append(Button([start_x + j * (90 + gap), 140], key, [90, 90]))
 
 for j, key in enumerate(keys_row2):
-    buttonList.append(Button([start_x + j * 95, 255], key))
+    buttonList.append(Button([start_x + j * (90 + gap), 242], key, [90, 90]))
 
 for j, key in enumerate(keys_row3):
-    buttonList.append(Button([start_x + j * 95, 360], key))
+    buttonList.append(Button([start_x + j * (90 + gap), 344], key, [90, 90]))
 
 # Populate special keys (Centered layout for Row 4)
-# Caps(120), Space(340), Backspace(130), Enter(120), Clear(120) with 10px gaps = 870px total width
-# Centering start_x for Row 4 = (1280 - 870) / 2 = 205
-buttonList.append(Button([205, 465], "Caps", [120, 85]))
-buttonList.append(Button([335, 465], "Space", [340, 85]))
-buttonList.append(Button([685, 465], "Backspace", [130, 85]))
-buttonList.append(Button([825, 465], "Enter", [120, 85]))
-buttonList.append(Button([955, 465], "Clear", [120, 85]))
+# Caps(135), Space(390), Backspace(150), Enter(140), Clear(145) with 12px gaps = 1008px total width
+# Centering start_x for Row 4 = 136
+buttonList.append(Button([136, 446], "Caps", [135, 90]))
+buttonList.append(Button([136 + 135 + gap, 446], "Space", [390, 90]))
+buttonList.append(Button([136 + 135 + gap + 390 + gap, 446], "Backspace", [150, 90]))
+buttonList.append(Button([136 + 135 + gap + 390 + gap + 150 + gap, 446], "Enter", [140, 90]))
+buttonList.append(Button([136 + 135 + gap + 390 + gap + 150 + gap + 140 + gap, 446], "Clear", [145, 90]))
 
 def drawAll(img, buttonList, active_button=None, clicked_button=None, isCaps=True):
     """
     Renders the virtual keyboard on a transparent overlay layer and blends it with the camera frame.
     Separates background panel transparency and key transparency for a premium glassmorphism look.
     """
-    # Stage 1: Draw highly translucent keyboard background panel (inner fill only)
-    overlay_bg = img.copy()
-    cv2.rectangle(overlay_bg, (150, 130), (1130, 570), (25, 20, 30), cv2.FILLED)
-    alpha_bg = 0.15 # Extremely translucent panel
-    cv2.addWeighted(overlay_bg, alpha_bg, img, 1 - alpha_bg, 0, img)
-    
-    # Stage 2: Draw distinct keys with higher opacity (and crisp keyboard border)
+    # Draw distinct keys with transparency directly on camera feed background
     overlay_keys = img.copy()
-    cv2.rectangle(overlay_keys, (150, 130), (1130, 570), (130, 60, 150), 2) # Elegant purple border
     for button in buttonList:
         x, y = button.pos
         w, h = button.size
@@ -119,12 +112,17 @@ def drawAll(img, buttonList, active_button=None, clicked_button=None, isCaps=Tru
 def drawTextBox(img, text, isCaps):
     """
     Renders a stylized text display field showing current typing progress and cursors.
+    Makes the background panel extremely translucent while keeping the text and borders sharp.
     """
-    overlay = img.copy()
+    # Stage 1: Draw highly translucent textbox background panel
+    overlay_bg = img.copy()
+    cv2.rectangle(overlay_bg, (136, 30), (1144, 110), (35, 25, 40), cv2.FILLED)
+    alpha_bg = 0.15 # Very translucent textbox background fill
+    cv2.addWeighted(overlay_bg, alpha_bg, img, 1 - alpha_bg, 0, img)
     
-    # Glassmorphism panel for the textbox
-    cv2.rectangle(overlay, (150, 30), (1130, 110), (35, 25, 40), cv2.FILLED)
-    cv2.rectangle(overlay, (150, 30), (1130, 110), (150, 70, 180), 2)
+    # Stage 2: Draw crisp text, border, and status badge
+    overlay_fg = img.copy()
+    cv2.rectangle(overlay_fg, (136, 30), (1144, 110), (150, 70, 180), 2) # Sharp border
     
     # Blinking terminal cursor
     cursor = "|" if int(time.time() * 2.5) % 2 == 0 else ""
@@ -137,34 +135,34 @@ def drawTextBox(img, text, isCaps):
     # Prevent text overflow (truncate from left to keep latest typing visible)
     while len(display_text) > 0:
         size = cv2.getTextSize(display_text, font, font_scale, thickness)[0]
-        if size[0] < (1130 - 150 - 40): # 40px margin
+        if size[0] < (1144 - 136 - 40): # 40px margin
             break
         display_text = display_text[1:]
         
     # Render typing text
     text_y = 30 + (80 + 20) // 2
-    cv2.putText(overlay, display_text, (175, text_y), font, font_scale, (255, 255, 255), thickness, cv2.LINE_AA)
+    cv2.putText(overlay_fg, display_text, (160, text_y), font, font_scale, (255, 255, 255), thickness, cv2.LINE_AA)
     
     # Render Caps Lock overlay badge
-    badge_x = 1150
+    badge_x = 1160
     badge_y = 45
     badge_w = 110
     badge_h = 50
     badge_bg = (100, 30, 120) if isCaps else (50, 50, 50)
     badge_border = (200, 80, 220) if isCaps else (100, 100, 100)
     
-    cv2.rectangle(overlay, (badge_x, badge_y), (badge_x + badge_w, badge_y + badge_h), badge_bg, cv2.FILLED)
-    cv2.rectangle(overlay, (badge_x, badge_y), (badge_x + badge_w, badge_y + badge_h), badge_border, 1)
+    cv2.rectangle(overlay_fg, (badge_x, badge_y), (badge_x + badge_w, badge_y + badge_h), badge_bg, cv2.FILLED)
+    cv2.rectangle(overlay_fg, (badge_x, badge_y), (badge_x + badge_w, badge_y + badge_h), badge_border, 1)
     
     badge_text = "CAPS ON" if isCaps else "caps off"
     badge_font_scale = 0.5
     badge_text_size = cv2.getTextSize(badge_text, font, badge_font_scale, 1)[0]
     badge_text_x = badge_x + (badge_w - badge_text_size[0]) // 2
     badge_text_y = badge_y + (badge_h + badge_text_size[1]) // 2
-    cv2.putText(overlay, badge_text, (badge_text_x, badge_text_y), font, badge_font_scale, (255, 255, 255), 1, cv2.LINE_AA)
+    cv2.putText(overlay_fg, badge_text, (badge_text_x, badge_text_y), font, badge_font_scale, (255, 255, 255), 1, cv2.LINE_AA)
     
-    alpha = 0.8
-    cv2.addWeighted(overlay, alpha, img, 1 - alpha, 0, img)
+    alpha_fg = 0.85 # High opacity for text and borders
+    cv2.addWeighted(overlay_fg, alpha_fg, img, 1 - alpha_fg, 0, img)
     return img
 
 print("Initializing camera feed... Hover index finger to target keys. Pinch index & thumb tips to type.")
