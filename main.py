@@ -62,13 +62,17 @@ buttonList.append(Button([955, 465], "Clear", [120, 85]))
 def drawAll(img, buttonList, active_button=None, clicked_button=None, isCaps=True):
     """
     Renders the virtual keyboard on a transparent overlay layer and blends it with the camera frame.
+    Separates background panel transparency and key transparency for a premium glassmorphism look.
     """
-    overlay = img.copy()
+    # Stage 1: Draw highly translucent keyboard background panel
+    overlay_bg = img.copy()
+    cv2.rectangle(overlay_bg, (150, 130), (1130, 570), (25, 20, 30), cv2.FILLED)
+    cv2.rectangle(overlay_bg, (150, 130), (1130, 570), (130, 60, 150), 2) # Elegant purple border
+    alpha_bg = 0.45 # More translucent panel
+    cv2.addWeighted(overlay_bg, alpha_bg, img, 1 - alpha_bg, 0, img)
     
-    # Draw dark main keyboard background panel
-    cv2.rectangle(overlay, (150, 130), (1130, 570), (25, 20, 30), cv2.FILLED)
-    cv2.rectangle(overlay, (150, 130), (1130, 570), (130, 60, 150), 2) # Elegant purple border
-    
+    # Stage 2: Draw distinct keys with higher opacity
+    overlay_keys = img.copy()
     for button in buttonList:
         x, y = button.pos
         w, h = button.size
@@ -88,8 +92,8 @@ def drawAll(img, buttonList, active_button=None, clicked_button=None, isCaps=Tru
             text_color = (235, 235, 235)
             
         # Draw key backgrounds and borders
-        cv2.rectangle(overlay, (x, y), (x + w, y + h), bg_color, cv2.FILLED)
-        cv2.rectangle(overlay, (x, y), (x + w, y + h), border_color, 2)
+        cv2.rectangle(overlay_keys, (x, y), (x + w, y + h), bg_color, cv2.FILLED)
+        cv2.rectangle(overlay_keys, (x, y), (x + w, y + h), border_color, 2)
         
         # Adjust capitalization of key text
         display_text = button.text
@@ -106,11 +110,10 @@ def drawAll(img, buttonList, active_button=None, clicked_button=None, isCaps=Tru
         text_x = x + (w - text_w) // 2
         text_y = y + (h + text_h) // 2
         
-        cv2.putText(overlay, display_text, (text_x, text_y), font, font_scale, text_color, thickness, cv2.LINE_AA)
+        cv2.putText(overlay_keys, display_text, (text_x, text_y), font, font_scale, text_color, thickness, cv2.LINE_AA)
         
-    # Apply alpha blending for modern glassmorphism transparency effect
-    alpha = 0.78
-    cv2.addWeighted(overlay, alpha, img, 1 - alpha, 0, img)
+    alpha_keys = 0.85 # Less translucent keys for readability
+    cv2.addWeighted(overlay_keys, alpha_keys, img, 1 - alpha_keys, 0, img)
     return img
 
 def drawTextBox(img, text, isCaps):
