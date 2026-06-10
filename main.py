@@ -64,15 +64,15 @@ def drawAll(img, buttonList, active_button=None, clicked_button=None, isCaps=Tru
     Renders the virtual keyboard on a transparent overlay layer and blends it with the camera frame.
     Separates background panel transparency and key transparency for a premium glassmorphism look.
     """
-    # Stage 1: Draw highly translucent keyboard background panel
+    # Stage 1: Draw highly translucent keyboard background panel (inner fill only)
     overlay_bg = img.copy()
     cv2.rectangle(overlay_bg, (150, 130), (1130, 570), (25, 20, 30), cv2.FILLED)
-    cv2.rectangle(overlay_bg, (150, 130), (1130, 570), (130, 60, 150), 2) # Elegant purple border
-    alpha_bg = 0.45 # More translucent panel
+    alpha_bg = 0.15 # Extremely translucent panel
     cv2.addWeighted(overlay_bg, alpha_bg, img, 1 - alpha_bg, 0, img)
     
-    # Stage 2: Draw distinct keys with higher opacity
+    # Stage 2: Draw distinct keys with higher opacity (and crisp keyboard border)
     overlay_keys = img.copy()
+    cv2.rectangle(overlay_keys, (150, 130), (1130, 570), (130, 60, 150), 2) # Elegant purple border
     for button in buttonList:
         x, y = button.pos
         w, h = button.size
