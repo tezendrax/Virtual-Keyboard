@@ -36,10 +36,10 @@ keys_row3 = ["Z", "X", "C", "V", "B", "N", "M", ",", ".", "/"]
 
 buttonList = []
 
-# Populate standard keys (Shifted right and uplifted layout)
-# Total keyboard width is around 1008px (10 buttons of 90px width + 12px gaps)
-start_x = 186
-gap = 12
+# Populate standard keys (Shifted right and uplifted layout with extra spacing)
+# Total keyboard width is around 1062px (10 buttons of 90px width + 18px gaps)
+start_x = 132
+gap = 18
 
 for j, key in enumerate(keys_row1):
     buttonList.append(Button([start_x + j * (90 + gap), 115], key, [90, 90]))
@@ -50,14 +50,14 @@ for j, key in enumerate(keys_row2):
 for j, key in enumerate(keys_row3):
     buttonList.append(Button([start_x + j * (90 + gap), 319], key, [90, 90]))
 
-# Populate special keys (Shifted right and uplifted layout)
-# Caps(135), Space(390), Backspace(150), Enter(140), Clear(145) with 12px gaps = 1008px total width
-# Centering start_x for Row 4 = 186
-buttonList.append(Button([186, 421], "Caps", [135, 90]))
-buttonList.append(Button([186 + 135 + gap, 421], "Space", [390, 90]))
-buttonList.append(Button([186 + 135 + gap + 390 + gap, 421], "Backspace", [150, 90]))
-buttonList.append(Button([186 + 135 + gap + 390 + gap + 150 + gap, 421], "Enter", [140, 90]))
-buttonList.append(Button([186 + 135 + gap + 390 + gap + 150 + gap + 140 + gap, 421], "Clear", [145, 90]))
+# Populate special keys (Shifted right and uplifted layout with extra spacing)
+# Caps(140), Space(400), Backspace(150), Enter(150), Clear(150) with 18px gaps = 1062px total width
+# Centering start_x for Row 4 = 132
+buttonList.append(Button([132, 421], "Caps", [140, 90]))
+buttonList.append(Button([132 + 140 + gap, 421], "Space", [400, 90]))
+buttonList.append(Button([132 + 140 + gap + 400 + gap, 421], "Backspace", [150, 90]))
+buttonList.append(Button([132 + 140 + gap + 400 + gap + 150 + gap, 421], "Enter", [150, 90]))
+buttonList.append(Button([132 + 140 + gap + 400 + gap + 150 + gap + 150 + gap, 421], "Clear", [150, 90]))
 
 def drawAll(img, buttonList, active_button=None, clicked_button=None, isCaps=True):
     """
@@ -116,13 +116,13 @@ def drawTextBox(img, text, isCaps):
     """
     # Stage 1: Draw highly translucent textbox background panel
     overlay_bg = img.copy()
-    cv2.rectangle(overlay_bg, (186, 15), (1194, 95), (35, 25, 40), cv2.FILLED)
+    cv2.rectangle(overlay_bg, (132, 15), (1194, 95), (35, 25, 40), cv2.FILLED)
     alpha_bg = 0.10 # Very translucent textbox background fill (increased transparency)
     cv2.addWeighted(overlay_bg, alpha_bg, img, 1 - alpha_bg, 0, img)
     
     # Stage 2: Draw crisp text, border, and status badge
     overlay_fg = img.copy()
-    cv2.rectangle(overlay_fg, (186, 15), (1194, 95), (150, 70, 180), 2) # Sharp border
+    cv2.rectangle(overlay_fg, (132, 15), (1194, 95), (150, 70, 180), 2) # Sharp border
     
     # Blinking terminal cursor
     cursor = "|" if int(time.time() * 2.5) % 2 == 0 else ""
@@ -135,18 +135,18 @@ def drawTextBox(img, text, isCaps):
     # Prevent text overflow (truncate from left to keep latest typing visible)
     while len(display_text) > 0:
         size = cv2.getTextSize(display_text, font, font_scale, thickness)[0]
-        if size[0] < (1194 - 186 - 40): # 40px margin
+        if size[0] < (1194 - 132 - 40): # 40px margin
             break
         display_text = display_text[1:]
         
     # Render typing text
     text_y = 15 + (80 + 20) // 2
-    cv2.putText(overlay_fg, display_text, (210, text_y), font, font_scale, (255, 255, 255), thickness, cv2.LINE_AA)
+    cv2.putText(overlay_fg, display_text, (160, text_y), font, font_scale, (255, 255, 255), thickness, cv2.LINE_AA)
     
     # Render Caps Lock overlay badge (balanced on the left margin)
-    badge_x = 60
+    badge_x = 20
     badge_y = 30
-    badge_w = 110
+    badge_w = 90
     badge_h = 50
     badge_bg = (100, 30, 120) if isCaps else (50, 50, 50)
     badge_border = (200, 80, 220) if isCaps else (100, 100, 100)
