@@ -36,28 +36,28 @@ keys_row3 = ["Z", "X", "C", "V", "B", "N", "M", ",", ".", "/"]
 
 buttonList = []
 
-# Populate standard keys (Centered layout)
+# Populate standard keys (Shifted right and uplifted layout)
 # Total keyboard width is around 1008px (10 buttons of 90px width + 12px gaps)
-start_x = 136
+start_x = 186
 gap = 12
 
 for j, key in enumerate(keys_row1):
-    buttonList.append(Button([start_x + j * (90 + gap), 140], key, [90, 90]))
+    buttonList.append(Button([start_x + j * (90 + gap), 115], key, [90, 90]))
 
 for j, key in enumerate(keys_row2):
-    buttonList.append(Button([start_x + j * (90 + gap), 242], key, [90, 90]))
+    buttonList.append(Button([start_x + j * (90 + gap), 217], key, [90, 90]))
 
 for j, key in enumerate(keys_row3):
-    buttonList.append(Button([start_x + j * (90 + gap), 344], key, [90, 90]))
+    buttonList.append(Button([start_x + j * (90 + gap), 319], key, [90, 90]))
 
-# Populate special keys (Centered layout for Row 4)
+# Populate special keys (Shifted right and uplifted layout)
 # Caps(135), Space(390), Backspace(150), Enter(140), Clear(145) with 12px gaps = 1008px total width
-# Centering start_x for Row 4 = 136
-buttonList.append(Button([136, 446], "Caps", [135, 90]))
-buttonList.append(Button([136 + 135 + gap, 446], "Space", [390, 90]))
-buttonList.append(Button([136 + 135 + gap + 390 + gap, 446], "Backspace", [150, 90]))
-buttonList.append(Button([136 + 135 + gap + 390 + gap + 150 + gap, 446], "Enter", [140, 90]))
-buttonList.append(Button([136 + 135 + gap + 390 + gap + 150 + gap + 140 + gap, 446], "Clear", [145, 90]))
+# Centering start_x for Row 4 = 186
+buttonList.append(Button([186, 421], "Caps", [135, 90]))
+buttonList.append(Button([186 + 135 + gap, 421], "Space", [390, 90]))
+buttonList.append(Button([186 + 135 + gap + 390 + gap, 421], "Backspace", [150, 90]))
+buttonList.append(Button([186 + 135 + gap + 390 + gap + 150 + gap, 421], "Enter", [140, 90]))
+buttonList.append(Button([186 + 135 + gap + 390 + gap + 150 + gap + 140 + gap, 421], "Clear", [145, 90]))
 
 def drawAll(img, buttonList, active_button=None, clicked_button=None, isCaps=True):
     """
@@ -105,7 +105,7 @@ def drawAll(img, buttonList, active_button=None, clicked_button=None, isCaps=Tru
         
         cv2.putText(overlay_keys, display_text, (text_x, text_y), font, font_scale, text_color, thickness, cv2.LINE_AA)
         
-    alpha_keys = 0.68 # Slightly translucent keys for a unified glassy look
+    alpha_keys = 0.52 # Highly translucent keys for a unified glassy look
     cv2.addWeighted(overlay_keys, alpha_keys, img, 1 - alpha_keys, 0, img)
     return img
 
@@ -116,13 +116,13 @@ def drawTextBox(img, text, isCaps):
     """
     # Stage 1: Draw highly translucent textbox background panel
     overlay_bg = img.copy()
-    cv2.rectangle(overlay_bg, (136, 30), (1144, 110), (35, 25, 40), cv2.FILLED)
-    alpha_bg = 0.15 # Very translucent textbox background fill
+    cv2.rectangle(overlay_bg, (186, 15), (1194, 95), (35, 25, 40), cv2.FILLED)
+    alpha_bg = 0.10 # Very translucent textbox background fill (increased transparency)
     cv2.addWeighted(overlay_bg, alpha_bg, img, 1 - alpha_bg, 0, img)
     
     # Stage 2: Draw crisp text, border, and status badge
     overlay_fg = img.copy()
-    cv2.rectangle(overlay_fg, (136, 30), (1144, 110), (150, 70, 180), 2) # Sharp border
+    cv2.rectangle(overlay_fg, (186, 15), (1194, 95), (150, 70, 180), 2) # Sharp border
     
     # Blinking terminal cursor
     cursor = "|" if int(time.time() * 2.5) % 2 == 0 else ""
@@ -135,17 +135,17 @@ def drawTextBox(img, text, isCaps):
     # Prevent text overflow (truncate from left to keep latest typing visible)
     while len(display_text) > 0:
         size = cv2.getTextSize(display_text, font, font_scale, thickness)[0]
-        if size[0] < (1144 - 136 - 40): # 40px margin
+        if size[0] < (1194 - 186 - 40): # 40px margin
             break
         display_text = display_text[1:]
         
     # Render typing text
-    text_y = 30 + (80 + 20) // 2
-    cv2.putText(overlay_fg, display_text, (160, text_y), font, font_scale, (255, 255, 255), thickness, cv2.LINE_AA)
+    text_y = 15 + (80 + 20) // 2
+    cv2.putText(overlay_fg, display_text, (210, text_y), font, font_scale, (255, 255, 255), thickness, cv2.LINE_AA)
     
-    # Render Caps Lock overlay badge
-    badge_x = 1160
-    badge_y = 45
+    # Render Caps Lock overlay badge (balanced on the left margin)
+    badge_x = 60
+    badge_y = 30
     badge_w = 110
     badge_h = 50
     badge_bg = (100, 30, 120) if isCaps else (50, 50, 50)
@@ -165,7 +165,7 @@ def drawTextBox(img, text, isCaps):
     cv2.addWeighted(overlay_fg, alpha_fg, img, 1 - alpha_fg, 0, img)
     return img
 
-print("Initializing camera feed... Hover index finger to target keys. Pinch index & thumb tips to type.")
+print("Initializing camera feed... Hover index finger to target keys. Pinch index & middle finger tips to type.")
 
 while True:
     success, img = cap.read()
@@ -206,18 +206,18 @@ while True:
                 
     # Detect and handle click event
     if active_button and lmList:
-        # lmList[8] (index tip) and lmList[4] (thumb tip)
+        # lmList[8] (index tip) and lmList[12] (middle tip)
         idx_x, idx_y = lmList[8][0], lmList[8][1]
-        thumb_x, thumb_y = lmList[4][0], lmList[4][1]
+        mid_x, mid_y = lmList[12][0], lmList[12][1]
         
         # Calculate Euclidean distance
-        distance = np.hypot(idx_x - thumb_x, idx_y - thumb_y)
+        distance = np.hypot(idx_x - mid_x, idx_y - mid_y)
         
         # Draw interaction indicator lines
         color = (100, 255, 100) if distance < 35 else (0, 165, 255) # Green when close to clicking, Orange when far
-        cv2.line(img, (idx_x, idx_y), (thumb_x, thumb_y), color, 3)
+        cv2.line(img, (idx_x, idx_y), (mid_x, mid_y), color, 3)
         cv2.circle(img, (idx_x, idx_y), 7, color, cv2.FILLED)
-        cv2.circle(img, (thumb_x, thumb_y), 7, color, cv2.FILLED)
+        cv2.circle(img, (mid_x, mid_y), 7, color, cv2.FILLED)
         
         # Trigger typing logic on click gesture (< 35px)
         current_time = time.time()
@@ -266,7 +266,6 @@ while True:
     # Press 'q' on hardware keyboard to exit
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
-
 cap.release()
 cv2.destroyAllWindows()
-print("Session ended.")
+print("Session ended.")      
