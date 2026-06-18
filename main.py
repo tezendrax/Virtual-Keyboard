@@ -176,9 +176,8 @@ while True:
     # Flip the image horizontally for a natural mirror view
     img = cv2.flip(img, 1)
     
-    # Detect hand
-    # Note: Modern cvzone HandDetector findHands returns (hands, img)
-    result = detector.findHands(img, draw=True)
+    # Detect hand (with cvzone drawing disabled so we can render our custom premium lines)
+    result = detector.findHands(img, draw=False)
     
     if isinstance(result, tuple):
         hands, img = result
@@ -189,6 +188,29 @@ while True:
     if hands:
         # Get coordinates for the first hand detected
         lmList = hands[0]["lmList"]
+        
+        # Define connection pairs for standard MediaPipe hand landmark skeleton
+        connections = [
+            (0, 1), (1, 2), (2, 3), (3, 4),      # Thumb
+            (0, 5), (5, 6), (6, 7), (7, 8),      # Index
+            (9, 10), (10, 11), (11, 12),         # Middle
+            (13, 14), (14, 15), (15, 16),        # Ring
+            (0, 17), (17, 18), (18, 19), (19, 20),# Pinky
+            (5, 9), (9, 13), (13, 17)            # Knuckle base connections
+        ]
+        
+        # 1. Draw futuristic neon cyan skeleton lines
+        line_color = (255, 180, 50) # Light neon cyan in BGR
+        for p1, p2 in connections:
+            x1, y1 = lmList[p1][0], lmList[p1][1]
+            x2, y2 = lmList[p2][0], lmList[p2][1]
+            cv2.line(img, (x1, y1), (x2, y2), line_color, 2, cv2.LINE_AA)
+            
+        # 2. Draw sleek joint nodes (blue outer rim with white centers)
+        for lm in lmList:
+            cx, cy = lm[0], lm[1]
+            cv2.circle(img, (cx, cy), 5, (255, 100, 0), cv2.FILLED) # Outer deep blue rim
+            cv2.circle(img, (cx, cy), 2, (255, 255, 255), cv2.FILLED) # Inner white core
         
     active_button = None
     
