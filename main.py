@@ -196,7 +196,8 @@ while True:
             (9, 10), (10, 11), (11, 12),         # Middle
             (13, 14), (14, 15), (15, 16),        # Ring
             (0, 17), (17, 18), (18, 19), (19, 20),# Pinky
-            (5, 9), (9, 13), (13, 17)            # Knuckle base connections
+            (5, 9), (9, 13), (13, 17),           # Knuckle base connections
+            (1, 5)                               # Connect thumb base to index base to structure the palm
         ]
         
         # 1. Draw futuristic neon cyan skeleton lines
