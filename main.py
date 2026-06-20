@@ -109,7 +109,7 @@ def drawAll(img, buttonList, active_button=None, clicked_button=None, isCaps=Tru
         
         cv2.putText(overlay_keys, display_text, (text_x, text_y), font, font_scale, text_color, thickness, cv2.LINE_AA)
         
-    alpha_keys = 0.35 # Even more translucent keys for an ultra-glassy look
+    alpha_keys = 0.58 # Slightly more opaque frosted keys
     cv2.addWeighted(overlay_keys, alpha_keys, img, 1 - alpha_keys, 0, img)
     return img
 
