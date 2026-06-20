@@ -71,26 +71,21 @@ def drawAll(img, buttonList, active_button=None, clicked_button=None, isCaps=Tru
     # Draw distinct keys with transparency directly on camera feed background
     overlay_keys = img.copy()
     for button in buttonList:
+        if clicked_button == button or active_button == button:
+            continue # We will draw the hovered/clicked keys later on top with high opacity/solid style
+            
         x, y = button.pos
         w, h = button.size
         
-        # Decide styling based on button state (Normal, Hover, Clicked)
-        if clicked_button == button:
-            bg_color = (25, 130, 45)      # Deep dark green for active click
-            border_color = (45, 180, 65)  # Premium green border
-            text_color = (255, 255, 255)  # Crisp white text
-        elif active_button == button:
-            bg_color = (100, 15, 100)     # Rich dark purple for hover
-            border_color = (160, 30, 160) # Deep purple border
-            text_color = (255, 255, 255)  # Crisp white text
-        else:
-            bg_color = (180, 80, 25)       # Light blue for default state (BGR)
-            border_color = (230, 110, 45)  # Light blue border outline
-            text_color = (255, 255, 255)   # Crisp white text
+        bg_color = (75, 15, 3)         # Much darker navy blue for default state (BGR)
+        border_color = (105, 25, 5)    # Matching dark navy border outline
+        text_color = (255, 255, 255)   # Crisp white text
+        inner_glow = (255, 190, 80)  # Bright neon cyan/blue glow
             
         # Draw key backgrounds and borders
         cv2.rectangle(overlay_keys, (x, y), (x + w, y + h), bg_color, cv2.FILLED)
-        cv2.rectangle(overlay_keys, (x, y), (x + w, y + h), border_color, 1) # Thin border
+        cv2.rectangle(overlay_keys, (x, y), (x + w, y + h), border_color, 2) # Outer border
+        cv2.rectangle(overlay_keys, (x + 2, y + 2), (x + w - 2, y + h - 2), inner_glow, 1)
         
         # Adjust capitalization of key text
         display_text = button.text
@@ -102,7 +97,7 @@ def drawAll(img, buttonList, active_button=None, clicked_button=None, isCaps=Tru
         
         # Optimize font size for special keys and standard keys
         if display_text == "Caps":
-            font_scale = 1.15 # Centered and beautifully sized inside the Caps button
+            font_scale = 1.15
         elif display_text == "Space":
             font_scale = 1.1
         elif display_text == "Backspace":
@@ -121,8 +116,92 @@ def drawAll(img, buttonList, active_button=None, clicked_button=None, isCaps=Tru
         
         cv2.putText(overlay_keys, display_text, (text_x, text_y), font, font_scale, text_color, thickness, cv2.LINE_AA)
         
-    alpha_keys = 0.58 # Slightly more opaque frosted keys
+    alpha_keys = 0.52 # Slightly more solid frosted keys
     cv2.addWeighted(overlay_keys, alpha_keys, img, 1 - alpha_keys, 0, img)
+    
+    # Render the hovered key on top with a much higher opacity (0.85) to decrease its transparency
+    if active_button and active_button != clicked_button:
+        x, y = active_button.pos
+        w, h = active_button.size
+        
+        bg_color = (60, 0, 60)        # Deeper rich dark purple for hover
+        border_color = (100, 10, 100) # Dark purple border
+        inner_glow = (240, 100, 240) # Bright neon purple glow
+        text_color = (255, 255, 255)  # Crisp white text
+        
+        overlay_hover = img.copy()
+        cv2.rectangle(overlay_hover, (x, y), (x + w, y + h), bg_color, cv2.FILLED)
+        cv2.rectangle(overlay_hover, (x, y), (x + w, y + h), border_color, 2)
+        cv2.rectangle(overlay_hover, (x + 2, y + 2), (x + w - 2, y + h - 2), inner_glow, 1)
+        
+        display_text = active_button.text
+        if len(display_text) == 1 and display_text.isalpha():
+            display_text = display_text.upper() if isCaps else display_text.lower()
+            
+        font = cv2.FONT_HERSHEY_DUPLEX
+        if display_text == "Caps":
+            font_scale = 1.15
+        elif display_text == "Space":
+            font_scale = 1.1
+        elif display_text == "Backspace":
+            font_scale = 0.7
+        elif display_text in ["Enter", "Clear"]:
+            font_scale = 0.95
+        else:
+            font_scale = 0.9 if len(display_text) > 1 else 1.3
+            
+        thickness = 2
+        text_size = cv2.getTextSize(display_text, font, font_scale, thickness)[0]
+        text_w, text_h = text_size[0], text_size[1]
+        text_x = x + (w - text_w) // 2
+        text_y = y + (h + text_h) // 2
+        cv2.putText(overlay_hover, display_text, (text_x, text_y), font, font_scale, text_color, thickness, cv2.LINE_AA)
+        
+        alpha_hover = 0.85 # Highly solid hover appearance (decreased transparency)
+        cv2.addWeighted(overlay_hover, alpha_hover, img, 1 - alpha_hover, 0, img)
+    
+    # Render the clicked key on top with a much higher opacity (0.88) to decrease its transparency
+    if clicked_button:
+        x, y = clicked_button.pos
+        w, h = clicked_button.size
+        
+        bg_color = (15, 110, 30)      # Vivid dark green background
+        border_color = (35, 170, 50)  # Solid green border
+        inner_glow = (80, 240, 120)   # Glowing neon green inner outline
+        text_color = (255, 255, 255)  # Crisp white text
+        
+        overlay_click = img.copy()
+        cv2.rectangle(overlay_click, (x, y), (x + w, y + h), bg_color, cv2.FILLED)
+        cv2.rectangle(overlay_click, (x, y), (x + w, y + h), border_color, 2)
+        cv2.rectangle(overlay_click, (x + 2, y + 2), (x + w - 2, y + h - 2), inner_glow, 1)
+        
+        # Center key text capitalization
+        display_text = clicked_button.text
+        if len(display_text) == 1 and display_text.isalpha():
+            display_text = display_text.upper() if isCaps else display_text.lower()
+            
+        font = cv2.FONT_HERSHEY_DUPLEX
+        if display_text == "Caps":
+            font_scale = 1.15
+        elif display_text == "Space":
+            font_scale = 1.1
+        elif display_text == "Backspace":
+            font_scale = 0.7
+        elif display_text in ["Enter", "Clear"]:
+            font_scale = 0.95
+        else:
+            font_scale = 0.9 if len(display_text) > 1 else 1.3
+            
+        thickness = 2
+        text_size = cv2.getTextSize(display_text, font, font_scale, thickness)[0]
+        text_w, text_h = text_size[0], text_size[1]
+        text_x = x + (w - text_w) // 2
+        text_y = y + (h + text_h) // 2
+        cv2.putText(overlay_click, display_text, (text_x, text_y), font, font_scale, text_color, thickness, cv2.LINE_AA)
+        
+        alpha_click = 0.88 # Very solid click appearance
+        cv2.addWeighted(overlay_click, alpha_click, img, 1 - alpha_click, 0, img)
+        
     return img
 
 def drawTextBox(img, text, isCaps):
@@ -136,9 +215,19 @@ def drawTextBox(img, text, isCaps):
     alpha_bg = 0.10 # Translucent textbox background fill
     cv2.addWeighted(overlay_bg, alpha_bg, img, 1 - alpha_bg, 0, img)
     
-    # Stage 2: Draw crisp text, border, and Caps Lock badge
+    # Stage 2: Draw crisp text, double stylish border, and Caps Lock badge
     overlay_fg = img.copy()
-    cv2.rectangle(overlay_fg, (166, 15), (1194, 95), (150, 70, 180), 2) # Sharp border
+    cv2.rectangle(overlay_fg, (166, 15), (1194, 95), (150, 70, 180), 2) # Sharp outer border
+    cv2.rectangle(overlay_fg, (170, 19), (1190, 91), (220, 120, 245), 1) # Glowing inner accent border
+    
+    # Subtle asymmetrical neon pink corner accent lines
+    accent_color = (255, 150, 255)
+    # Top-Left accent
+    cv2.line(overlay_fg, (166, 15), (178, 15), accent_color, 2, cv2.LINE_AA)
+    cv2.line(overlay_fg, (166, 15), (166, 27), accent_color, 2, cv2.LINE_AA)
+    # Bottom-Right accent
+    cv2.line(overlay_fg, (1194, 95), (1182, 95), accent_color, 2, cv2.LINE_AA)
+    cv2.line(overlay_fg, (1194, 95), (1194, 83), accent_color, 2, cv2.LINE_AA)
     
     # Blinking terminal cursor
     cursor = "|" if int(time.time() * 2.5) % 2 == 0 else ""
@@ -241,7 +330,7 @@ def drawSidePanel(img, lmList, active_button, wpm, total_keys_pressed, isCaps):
     if pct > 0:
         fill_h = int(bar_h * (pct / 100.0))
         # Turn green if clicked (>=95%), white color (255, 255, 255) otherwise
-        fill_color = (25, 130, 45) if pct >= 95 else (255, 255, 255)
+        fill_color = (15, 110, 30) if pct >= 95 else (105, 25, 5)
         cv2.rectangle(overlay, (47, bar_y_end - fill_h), (85, bar_y_end - 1), fill_color, cv2.FILLED)
         
     # Render percentage text below bar
@@ -264,7 +353,7 @@ def drawSidePanel(img, lmList, active_button, wpm, total_keys_pressed, isCaps):
     cv2.putText(overlay, caps_text, (28, 510), font, 0.4, caps_color, 1, cv2.LINE_AA)
     
     # Apply alpha blending for translucent look (match side panel transparency)
-    alpha = 0.75
+    alpha = 0.93
     cv2.addWeighted(overlay, alpha, img, 1 - alpha, 0, img)
     return img
 
@@ -292,30 +381,6 @@ while True:
         # Get coordinates for the first hand detected
         lmList = hands[0]["lmList"]
         
-        # Define connection pairs for standard MediaPipe hand landmark skeleton
-        connections = [
-            (0, 1), (1, 2), (2, 3), (3, 4),      # Thumb
-            (0, 5), (5, 6), (6, 7), (7, 8),      # Index
-            (9, 10), (10, 11), (11, 12),         # Middle
-            (13, 14), (14, 15), (15, 16),        # Ring
-            (0, 17), (17, 18), (18, 19), (19, 20),# Pinky
-            (5, 9), (9, 13), (13, 17),           # Knuckle base connections
-            (1, 5)                               # Connect thumb base to index base to structure the palm
-        ]
-        
-        # 1. Draw futuristic neon cyan skeleton lines
-        line_color = (255, 180, 50) # Light neon cyan in BGR
-        for p1, p2 in connections:
-            x1, y1 = lmList[p1][0], lmList[p1][1]
-            x2, y2 = lmList[p2][0], lmList[p2][1]
-            cv2.line(img, (x1, y1), (x2, y2), line_color, 2, cv2.LINE_AA)
-            
-        # 2. Draw sleek joint nodes (blue outer rim with white centers)
-        for lm in lmList:
-            cx, cy = lm[0], lm[1]
-            cv2.circle(img, (cx, cy), 5, (255, 100, 0), cv2.FILLED) # Outer deep blue rim
-            cv2.circle(img, (cx, cy), 2, (255, 255, 255), cv2.FILLED) # Inner white core
-        
     active_button = None
     
     # Check if index finger is hovering over any button
@@ -331,6 +396,7 @@ while True:
                 break
                 
     # Detect and handle click event
+    distance = None
     if active_button and lmList:
         # lmList[8] (index tip) and lmList[12] (middle tip)
         idx_x, idx_y = lmList[8][0], lmList[8][1]
@@ -338,12 +404,6 @@ while True:
         
         # Calculate Euclidean distance
         distance = np.hypot(idx_x - mid_x, idx_y - mid_y)
-        
-        # Draw interaction indicator lines
-        color = (100, 255, 100) if distance < 35 else (0, 165, 255) # Green when close to clicking, Orange when far
-        cv2.line(img, (idx_x, idx_y), (mid_x, mid_y), color, 3)
-        cv2.circle(img, (idx_x, idx_y), 7, color, cv2.FILLED)
-        cv2.circle(img, (mid_x, mid_y), 7, color, cv2.FILLED)
         
         # Trigger typing logic on click gesture (< 35px)
         current_time = time.time()
@@ -400,8 +460,81 @@ while True:
         if elapsed > 0.005: # Calculate after 0.3 seconds to avoid infinity spike
             wpm = int((total_keys_pressed / 5.0) / elapsed)
         
-    # Render layout and textbox overlay
+    # Stage 1: Render keyboard layout (this draws the keys)
     img = drawAll(img, buttonList, active_button, clicked_key, isCaps)
+    
+    # Stage 2: Draw hand skeleton & interaction indicator on TOP of the keys (soft & translucent)
+    if lmList:
+        overlay_hand = img.copy()
+        
+        # 1. Translucent palm energy field polygon
+        palm_pts = np.array([
+            [lmList[0][0], lmList[0][1]],
+            [lmList[1][0], lmList[1][1]],
+            [lmList[2][0], lmList[2][1]],
+            [lmList[5][0], lmList[5][1]],
+            [lmList[9][0], lmList[9][1]],
+            [lmList[13][0], lmList[13][1]],
+            [lmList[17][0], lmList[17][1]]
+        ], dtype=np.int32)
+        
+        # Fill polygon on a separate temporary overlay to keep palm area extremely subtle (low fill opacity)
+        overlay_palm = overlay_hand.copy()
+        cv2.fillPoly(overlay_palm, [palm_pts], (240, 130, 20))
+        cv2.addWeighted(overlay_palm, 0.20, overlay_hand, 0.80, 0, overlay_hand)
+        
+        # Define connection pairs for standard MediaPipe hand landmark skeleton
+        connections = [
+            (0, 1), (1, 2), (2, 3), (3, 4),      # Thumb
+            (0, 5), (5, 6), (6, 7), (7, 8),      # Index
+            (9, 10), (10, 11), (11, 12),         # Middle
+            (13, 14), (14, 15), (15, 16),        # Ring
+            (0, 17), (17, 18), (18, 19), (19, 20),# Pinky
+            (5, 9), (9, 13), (13, 17),           # Knuckle base connections
+            (1, 5)                               # Connect thumb base to index base to structure the palm
+        ]
+        
+        # 2. Draw connections with glowing neon light blue tubes (light blue outer glow with white inner core)
+        for p1, p2 in connections:
+            x1, y1 = lmList[p1][0], lmList[p1][1]
+            x2, y2 = lmList[p2][0], lmList[p2][1]
+            cv2.line(overlay_hand, (x1, y1), (x2, y2), (240, 130, 20), 2, cv2.LINE_AA) # Outer light blue glow
+            cv2.line(overlay_hand, (x1, y1), (x2, y2), (255, 255, 255), 1, cv2.LINE_AA) # Sharp white core
+            
+        # 3. Draw joint nodes & fingertip target reticles (neon purple)
+        # Filter to only draw 3 dots per finger (Thumb: 2, 3, 4; Index: 5, 6, 8; Middle: 9, 10, 12; Ring: 13, 14, 16; Pinky: 17, 18, 20)
+        allowed_dots = {2, 3, 4, 5, 6, 8, 9, 10, 12, 13, 14, 16, 17, 18, 20}
+        for i, lm in enumerate(lmList):
+            if i not in allowed_dots:
+                continue
+            cx, cy = lm[0], lm[1]
+            if i in [8, 12]: # Index tip (8) and Middle tip (12) used for target and click
+                # Cyber target reticle
+                cv2.circle(overlay_hand, (cx, cy), 9, (240, 100, 240), 1, cv2.LINE_AA) # Outer ring
+                cv2.circle(overlay_hand, (cx, cy), 3, (240, 100, 240), cv2.FILLED)    # Center node
+                # Reticle ticks
+                cv2.line(overlay_hand, (cx - 13, cy), (cx - 7, cy), (240, 100, 240), 1, cv2.LINE_AA)
+                cv2.line(overlay_hand, (cx + 7, cy), (cx + 13, cy), (240, 100, 240), 1, cv2.LINE_AA)
+                cv2.line(overlay_hand, (cx, cy - 13), (cx, cy - 7), (240, 100, 240), 1, cv2.LINE_AA)
+                cv2.line(overlay_hand, (cx, cy + 7), (cx, cy + 13), (240, 100, 240), 1, cv2.LINE_AA)
+            else:
+                # Standard joint node (neat neon purple with white core)
+                cv2.circle(overlay_hand, (cx, cy), 5, (240, 100, 240), cv2.FILLED)
+                cv2.circle(overlay_hand, (cx, cy), 2, (255, 255, 255), cv2.FILLED)
+            
+        # 4. Draw interaction indicator line
+        if active_button and distance is not None:
+            idx_x, idx_y = lmList[8][0], lmList[8][1]
+            mid_x, mid_y = lmList[12][0], lmList[12][1]
+            # Light blue (240, 130, 20) when close to clicking, Neon purple (240, 100, 240) when far
+            color = (240, 130, 20) if distance < 35 else (240, 100, 240)
+            cv2.line(overlay_hand, (idx_x, idx_y), (mid_x, mid_y), color, 2, cv2.LINE_AA)
+            
+        # Blend the hand overlay onto the image with a subtle, soft opacity
+        alpha_hand = 0.60
+        cv2.addWeighted(overlay_hand, alpha_hand, img, 1 - alpha_hand, 0, img)
+        
+    # Stage 4: Draw textbox and sidebar HUD
     img = drawTextBox(img, finalText, isCaps)
     img = drawSidePanel(img, lmList, active_button, wpm, total_keys_pressed, isCaps)
     
