@@ -173,10 +173,10 @@ def drawTextBox(img, text, isCaps):
     Renders a stylized text display field showing current typing progress and cursors.
     Also displays the Caps Lock status badge outside the text box on the right.
     """
-    # Stage 1: Draw highly translucent textbox background panel (166 to 1194)
+    # Stage 1: Draw textbox background panel matching keys' color and opacity (166 to 1194)
     overlay_bg = img.copy()
-    cv2.rectangle(overlay_bg, (166, 15), (1194, 95), (35, 25, 40), cv2.FILLED)
-    alpha_bg = 0.10 # Translucent textbox background fill
+    cv2.rectangle(overlay_bg, (166, 15), (1194, 95), (90, 18, 4), cv2.FILLED) # Slightly lighter navy blue matching keys
+    alpha_bg = 0.52 # Exact opacity matching the keyboard keys
     cv2.addWeighted(overlay_bg, alpha_bg, img, 1 - alpha_bg, 0, img)
     
     # Stage 2: Draw crisp text, double stylish border, and Caps Lock badge
@@ -208,9 +208,9 @@ def drawTextBox(img, text, isCaps):
             break
         display_text = display_text[1:]
         
-    # Render typing text in bold black
+    # Render typing text in bold crisp white matching keys' text
     text_y = 15 + (80 + 20) // 2
-    cv2.putText(overlay_fg, display_text, (196, text_y), font, font_scale, (0, 0, 0), thickness, cv2.LINE_AA)
+    cv2.putText(overlay_fg, display_text, (196, text_y), font, font_scale, (255, 255, 255), thickness, cv2.LINE_AA)
     
     # Render Caps Lock overlay badge outside the text box on the right
     badge_x = 1198
@@ -506,11 +506,14 @@ while True:
             
         # 4. Draw interaction indicator line
         if active_button and distance is not None:
-            idx_x, idx_y = draw_lmList[8][0], draw_lmList[8][1]
-            mid_x, mid_y = draw_lmList[12][0], draw_lmList[12][1]
-            # Deep purple (160, 40, 160) single line for both states
-            color = (160, 40, 160)
-            cv2.line(overlay_hand, (idx_x, idx_y), (mid_x, mid_y), color, 2, cv2.LINE_AA)
+            # Check if middle finger is up using cvzone's fingersUp (index 2 corresponds to middle finger)
+            fingers = detector.fingersUp(hands[0])
+            if fingers[2] == 1:
+                idx_x, idx_y = draw_lmList[8][0], draw_lmList[8][1]
+                mid_x, mid_y = draw_lmList[12][0], draw_lmList[12][1]
+                # Glowing cyan-blue (255, 200, 50) to match fingertip reticles
+                color = (255, 200, 50)
+                cv2.line(overlay_hand, (idx_x, idx_y), (mid_x, mid_y), color, 2, cv2.LINE_AA)
             
         # Blend the hand overlay onto the image with a subtle, soft opacity
         alpha_hand = 0.78
