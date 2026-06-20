@@ -63,6 +63,40 @@ buttonList.append(Button([166 + 140 + gap + 400 + gap, 449], "Backspace", [150, 
 buttonList.append(Button([166 + 140 + gap + 400 + gap + 150 + gap, 449], "Enter", [150, 90]))
 buttonList.append(Button([166 + 140 + gap + 400 + gap + 150 + gap + 150 + gap, 449], "Clear", [150, 90]))
 
+def drawKeyText(img_overlay, button, text_color, isCaps):
+    """
+    Helper function to draw centered text inside a key on a given image overlay.
+    """
+    x, y = button.pos
+    w, h = button.size
+    
+    display_text = button.text
+    if len(display_text) == 1 and display_text.isalpha():
+        display_text = display_text.upper() if isCaps else display_text.lower()
+        
+    font = cv2.FONT_HERSHEY_DUPLEX
+    
+    # Optimize font size for special keys and standard keys
+    if display_text == "Caps":
+        font_scale = 1.15
+    elif display_text == "Space":
+        font_scale = 1.1
+    elif display_text == "Backspace":
+        font_scale = 0.7  # Prevent overflow for longer word
+    elif display_text in ["Enter", "Clear"]:
+        font_scale = 0.95
+    else:
+        font_scale = 0.9 if len(display_text) > 1 else 1.3
+        
+    thickness = 2
+    text_size = cv2.getTextSize(display_text, font, font_scale, thickness)[0]
+    text_w, text_h = text_size[0], text_size[1]
+    
+    text_x = x + (w - text_w) // 2
+    text_y = y + (h + text_h) // 2
+    
+    cv2.putText(img_overlay, display_text, (text_x, text_y), font, font_scale, text_color, thickness, cv2.LINE_AA)
+
 def drawAll(img, buttonList, active_button=None, clicked_button=None, isCaps=True):
     """
     Renders the virtual keyboard on a transparent overlay layer and blends it with the camera frame.
@@ -87,34 +121,7 @@ def drawAll(img, buttonList, active_button=None, clicked_button=None, isCaps=Tru
         cv2.rectangle(overlay_keys, (x, y), (x + w, y + h), border_color, 2) # Outer border
         cv2.rectangle(overlay_keys, (x + 2, y + 2), (x + w - 2, y + h - 2), inner_glow, 1)
         
-        # Adjust capitalization of key text
-        display_text = button.text
-        if len(display_text) == 1 and display_text.isalpha():
-            display_text = display_text.upper() if isCaps else display_text.lower()
-            
-        # Draw centered text inside keys
-        font = cv2.FONT_HERSHEY_DUPLEX
-        
-        # Optimize font size for special keys and standard keys
-        if display_text == "Caps":
-            font_scale = 1.15
-        elif display_text == "Space":
-            font_scale = 1.1
-        elif display_text == "Backspace":
-            font_scale = 0.7  # Prevent overflow for longer word
-        elif display_text in ["Enter", "Clear"]:
-            font_scale = 0.95
-        else:
-            font_scale = 0.9 if len(display_text) > 1 else 1.3
-            
-        thickness = 2
-        text_size = cv2.getTextSize(display_text, font, font_scale, thickness)[0]
-        text_w, text_h = text_size[0], text_size[1]
-        
-        text_x = x + (w - text_w) // 2
-        text_y = y + (h + text_h) // 2
-        
-        cv2.putText(overlay_keys, display_text, (text_x, text_y), font, font_scale, text_color, thickness, cv2.LINE_AA)
+        drawKeyText(overlay_keys, button, text_color, isCaps)
         
     alpha_keys = 0.52 # Slightly more solid frosted keys
     cv2.addWeighted(overlay_keys, alpha_keys, img, 1 - alpha_keys, 0, img)
@@ -134,28 +141,7 @@ def drawAll(img, buttonList, active_button=None, clicked_button=None, isCaps=Tru
         cv2.rectangle(overlay_hover, (x, y), (x + w, y + h), border_color, 2)
         cv2.rectangle(overlay_hover, (x + 2, y + 2), (x + w - 2, y + h - 2), inner_glow, 1)
         
-        display_text = active_button.text
-        if len(display_text) == 1 and display_text.isalpha():
-            display_text = display_text.upper() if isCaps else display_text.lower()
-            
-        font = cv2.FONT_HERSHEY_DUPLEX
-        if display_text == "Caps":
-            font_scale = 1.15
-        elif display_text == "Space":
-            font_scale = 1.1
-        elif display_text == "Backspace":
-            font_scale = 0.7
-        elif display_text in ["Enter", "Clear"]:
-            font_scale = 0.95
-        else:
-            font_scale = 0.9 if len(display_text) > 1 else 1.3
-            
-        thickness = 2
-        text_size = cv2.getTextSize(display_text, font, font_scale, thickness)[0]
-        text_w, text_h = text_size[0], text_size[1]
-        text_x = x + (w - text_w) // 2
-        text_y = y + (h + text_h) // 2
-        cv2.putText(overlay_hover, display_text, (text_x, text_y), font, font_scale, text_color, thickness, cv2.LINE_AA)
+        drawKeyText(overlay_hover, active_button, text_color, isCaps)
         
         alpha_hover = 0.85 # Highly solid hover appearance (decreased transparency)
         cv2.addWeighted(overlay_hover, alpha_hover, img, 1 - alpha_hover, 0, img)
@@ -175,29 +161,7 @@ def drawAll(img, buttonList, active_button=None, clicked_button=None, isCaps=Tru
         cv2.rectangle(overlay_click, (x, y), (x + w, y + h), border_color, 2)
         cv2.rectangle(overlay_click, (x + 2, y + 2), (x + w - 2, y + h - 2), inner_glow, 1)
         
-        # Center key text capitalization
-        display_text = clicked_button.text
-        if len(display_text) == 1 and display_text.isalpha():
-            display_text = display_text.upper() if isCaps else display_text.lower()
-            
-        font = cv2.FONT_HERSHEY_DUPLEX
-        if display_text == "Caps":
-            font_scale = 1.15
-        elif display_text == "Space":
-            font_scale = 1.1
-        elif display_text == "Backspace":
-            font_scale = 0.7
-        elif display_text in ["Enter", "Clear"]:
-            font_scale = 0.95
-        else:
-            font_scale = 0.9 if len(display_text) > 1 else 1.3
-            
-        thickness = 2
-        text_size = cv2.getTextSize(display_text, font, font_scale, thickness)[0]
-        text_w, text_h = text_size[0], text_size[1]
-        text_x = x + (w - text_w) // 2
-        text_y = y + (h + text_h) // 2
-        cv2.putText(overlay_click, display_text, (text_x, text_y), font, font_scale, text_color, thickness, cv2.LINE_AA)
+        drawKeyText(overlay_click, clicked_button, text_color, isCaps)
         
         alpha_click = 0.88 # Very solid click appearance
         cv2.addWeighted(overlay_click, alpha_click, img, 1 - alpha_click, 0, img)
