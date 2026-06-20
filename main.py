@@ -80,9 +80,9 @@ def drawAll(img, buttonList, active_button=None, clicked_button=None, isCaps=Tru
             border_color = (255, 120, 255)
             text_color = (255, 255, 255)
         else:
-            bg_color = (55, 45, 60)       # Deep violet-grey for default state
-            border_color = (95, 80, 100)
-            text_color = (235, 235, 235)
+            bg_color = (200, 160, 80)     # Sky blue for default state
+            border_color = (235, 190, 120) # Sky blue border
+            text_color = (255, 255, 255)
             
         # Draw key backgrounds and borders
         cv2.rectangle(overlay_keys, (x, y), (x + w, y + h), bg_color, cv2.FILLED)
@@ -291,4 +291,4 @@ while True:
         break
 cap.release()
 cv2.destroyAllWindows()
-print("Session ended.")      
+print("Session ended.")       ,
