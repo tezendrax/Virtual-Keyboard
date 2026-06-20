@@ -136,10 +136,10 @@ def drawTextBox(img, text, isCaps):
     font_scale = 1.1
     thickness = 2
     
-    # Prevent text overflow (truncate from left to keep latest typing visible)
+    # Prevent text overflow (truncate from left to keep latest typing visible, leaving room for right-aligned badge)
     while len(display_text) > 0:
         size = cv2.getTextSize(display_text, font, font_scale, thickness)[0]
-        if size[0] < (1194 - 132 - 40): # 40px margin
+        if size[0] < 880: # 880px limit prevents text from overlapping the badge
             break
         display_text = display_text[1:]
         
@@ -147,10 +147,10 @@ def drawTextBox(img, text, isCaps):
     text_y = 15 + (80 + 20) // 2
     cv2.putText(overlay_fg, display_text, (160, text_y), font, font_scale, (255, 255, 255), thickness, cv2.LINE_AA)
     
-    # Render Caps Lock overlay badge (balanced on the left margin)
-    badge_x = 20
+    # Render Caps Lock overlay badge inside the text box on the far right
+    badge_x = 1069
     badge_y = 30
-    badge_w = 90
+    badge_w = 110
     badge_h = 50
     badge_bg = (100, 30, 120) if isCaps else (50, 50, 50)
     badge_border = (200, 80, 220) if isCaps else (100, 100, 100)
