@@ -463,25 +463,44 @@ while True:
     # Stage 1: Render keyboard layout (this draws the keys)
     img = drawAll(img, buttonList, active_button, clicked_key, isCaps)
     
-    # Stage 2: Draw hand skeleton & interaction indicator on TOP of the keys (soft & translucent)
+    # Stage 2: Draw hand connections on TOP of the keys so they are clearly visible
     if lmList:
         overlay_hand = img.copy()
         
+        # Create a modified coordinate list for visualization so the palm appears wider on the right side
+        draw_lmList = [list(lm) for lm in lmList]
+        
+        # Determine if the right side of the palm on screen is the pinky side
+        # Landmark 17 (pinky base) vs Landmark 2 (thumb MCP)
+        is_pinky_on_right = lmList[17][0] > lmList[2][0]
+        
+        if is_pinky_on_right:
+            # Shift the pinky-side palm landmarks to the right to make the palm wider on the right
+            # ONLY shift the wrist and pinky knuckle landmarks by a very subtle amount (12px / 10px) to keep the finger line aligned
+            draw_lmList[17][0] += 12  # Pinky knuckle
+            draw_lmList[0][0] += 10   # Wrist (right side offset)
+        else:
+            # Shift the thumb-side palm landmarks to the right to make the palm wider on the right
+            # ONLY shift the wrist and thumb base landmarks by a very subtle amount (12px / 10px) to keep the line aligned
+            draw_lmList[1][0] += 12   # Thumb base
+            draw_lmList[2][0] += 12   # Thumb MCP
+            draw_lmList[0][0] += 10   # Wrist (right side offset)
+        
         # 1. Translucent palm energy field polygon
         palm_pts = np.array([
-            [lmList[0][0], lmList[0][1]],
-            [lmList[1][0], lmList[1][1]],
-            [lmList[2][0], lmList[2][1]],
-            [lmList[5][0], lmList[5][1]],
-            [lmList[9][0], lmList[9][1]],
-            [lmList[13][0], lmList[13][1]],
-            [lmList[17][0], lmList[17][1]]
+            [draw_lmList[0][0], draw_lmList[0][1]],
+            [draw_lmList[1][0], draw_lmList[1][1]],
+            [draw_lmList[2][0], draw_lmList[2][1]],
+            [draw_lmList[5][0], draw_lmList[5][1]],
+            [draw_lmList[9][0], draw_lmList[9][1]],
+            [draw_lmList[13][0], draw_lmList[13][1]],
+            [draw_lmList[17][0], draw_lmList[17][1]]
         ], dtype=np.int32)
         
         # Fill polygon on a separate temporary overlay to keep palm area extremely subtle (low fill opacity)
         overlay_palm = overlay_hand.copy()
-        cv2.fillPoly(overlay_palm, [palm_pts], (240, 130, 20))
-        cv2.addWeighted(overlay_palm, 0.20, overlay_hand, 0.80, 0, overlay_hand)
+        cv2.fillPoly(overlay_palm, [palm_pts], (160, 40, 160)) # Deep purple palm fill
+        cv2.addWeighted(overlay_palm, 0.15, overlay_hand, 0.85, 0, overlay_hand)
         
         # Define connection pairs for standard MediaPipe hand landmark skeleton
         connections = [
@@ -494,44 +513,43 @@ while True:
             (1, 5)                               # Connect thumb base to index base to structure the palm
         ]
         
-        # 2. Draw connections with glowing neon light blue tubes (light blue outer glow with white inner core)
+        # 2. Draw connections with a single clean deep purple line (no multiple shades/inner core)
         for p1, p2 in connections:
-            x1, y1 = lmList[p1][0], lmList[p1][1]
-            x2, y2 = lmList[p2][0], lmList[p2][1]
-            cv2.line(overlay_hand, (x1, y1), (x2, y2), (240, 130, 20), 2, cv2.LINE_AA) # Outer light blue glow
-            cv2.line(overlay_hand, (x1, y1), (x2, y2), (255, 255, 255), 1, cv2.LINE_AA) # Sharp white core
+            x1, y1 = draw_lmList[p1][0], draw_lmList[p1][1]
+            x2, y2 = draw_lmList[p2][0], draw_lmList[p2][1]
+            cv2.line(overlay_hand, (x1, y1), (x2, y2), (160, 40, 160), 2, cv2.LINE_AA)
             
-        # 3. Draw joint nodes & fingertip target reticles (neon purple)
+        # 3. Draw joint nodes & fingertip target reticles (cyan-blue to stand out from purple lines)
         # Filter to only draw 3 dots per finger (Thumb: 2, 3, 4; Index: 5, 6, 8; Middle: 9, 10, 12; Ring: 13, 14, 16; Pinky: 17, 18, 20)
         allowed_dots = {2, 3, 4, 5, 6, 8, 9, 10, 12, 13, 14, 16, 17, 18, 20}
-        for i, lm in enumerate(lmList):
+        for i, lm in enumerate(draw_lmList):
             if i not in allowed_dots:
                 continue
             cx, cy = lm[0], lm[1]
             if i in [8, 12]: # Index tip (8) and Middle tip (12) used for target and click
-                # Cyber target reticle
-                cv2.circle(overlay_hand, (cx, cy), 9, (240, 100, 240), 1, cv2.LINE_AA) # Outer ring
-                cv2.circle(overlay_hand, (cx, cy), 3, (240, 100, 240), cv2.FILLED)    # Center node
-                # Reticle ticks
-                cv2.line(overlay_hand, (cx - 13, cy), (cx - 7, cy), (240, 100, 240), 1, cv2.LINE_AA)
-                cv2.line(overlay_hand, (cx + 7, cy), (cx + 13, cy), (240, 100, 240), 1, cv2.LINE_AA)
-                cv2.line(overlay_hand, (cx, cy - 13), (cx, cy - 7), (240, 100, 240), 1, cv2.LINE_AA)
-                cv2.line(overlay_hand, (cx, cy + 7), (cx, cy + 13), (240, 100, 240), 1, cv2.LINE_AA)
+                # Cyber target reticle (slightly smaller)
+                cv2.circle(overlay_hand, (cx, cy), 7, (255, 200, 50), 1, cv2.LINE_AA) # Outer ring
+                cv2.circle(overlay_hand, (cx, cy), 2, (255, 200, 50), cv2.FILLED)    # Center node
+                # Reticle ticks (scaled down proportionally)
+                cv2.line(overlay_hand, (cx - 10, cy), (cx - 5, cy), (255, 200, 50), 1, cv2.LINE_AA)
+                cv2.line(overlay_hand, (cx + 5, cy), (cx + 10, cy), (255, 200, 50), 1, cv2.LINE_AA)
+                cv2.line(overlay_hand, (cx, cy - 10), (cx, cy - 5), (255, 200, 50), 1, cv2.LINE_AA)
+                cv2.line(overlay_hand, (cx, cy + 5), (cx, cy + 10), (255, 200, 50), 1, cv2.LINE_AA)
             else:
-                # Standard joint node (neat neon purple with white core)
-                cv2.circle(overlay_hand, (cx, cy), 5, (240, 100, 240), cv2.FILLED)
-                cv2.circle(overlay_hand, (cx, cy), 2, (255, 255, 255), cv2.FILLED)
+                # Standard joint node (neat cyan-blue with white core - scaled down)
+                cv2.circle(overlay_hand, (cx, cy), 4, (255, 200, 50), cv2.FILLED)
+                cv2.circle(overlay_hand, (cx, cy), 1, (255, 255, 255), cv2.FILLED)
             
         # 4. Draw interaction indicator line
         if active_button and distance is not None:
-            idx_x, idx_y = lmList[8][0], lmList[8][1]
-            mid_x, mid_y = lmList[12][0], lmList[12][1]
-            # Light blue (240, 130, 20) when close to clicking, Neon purple (240, 100, 240) when far
-            color = (240, 130, 20) if distance < 35 else (240, 100, 240)
+            idx_x, idx_y = draw_lmList[8][0], draw_lmList[8][1]
+            mid_x, mid_y = draw_lmList[12][0], draw_lmList[12][1]
+            # Deep purple (160, 40, 160) single line for both states
+            color = (160, 40, 160)
             cv2.line(overlay_hand, (idx_x, idx_y), (mid_x, mid_y), color, 2, cv2.LINE_AA)
             
         # Blend the hand overlay onto the image with a subtle, soft opacity
-        alpha_hand = 0.60
+        alpha_hand = 0.78
         cv2.addWeighted(overlay_hand, alpha_hand, img, 1 - alpha_hand, 0, img)
         
     # Stage 4: Draw textbox and sidebar HUD
