@@ -42,26 +42,26 @@ buttonList = []
 
 # Populate standard keys (Shifted right and uplifted layout with extra spacing)
 # Total keyboard width is around 1062px (10 buttons of 90px width + 18px gaps)
-start_x = 132
+start_x = 166
 gap = 18
 
 for j, key in enumerate(keys_row1):
-    buttonList.append(Button([start_x + j * (90 + gap), 145], key, [90, 90]))
+    buttonList.append(Button([start_x + j * (90 + gap), 125], key, [90, 90]))
 
 for j, key in enumerate(keys_row2):
-    buttonList.append(Button([start_x + j * (90 + gap), 253], key, [90, 90]))
+    buttonList.append(Button([start_x + j * (90 + gap), 233], key, [90, 90]))
 
 for j, key in enumerate(keys_row3):
-    buttonList.append(Button([start_x + j * (90 + gap), 361], key, [90, 90]))
+    buttonList.append(Button([start_x + j * (90 + gap), 341], key, [90, 90]))
 
 # Populate special keys (Shifted right and shifted downwards layout with 18px gaps)
 # Caps(140), Space(400), Backspace(150), Enter(150), Clear(150) with 18px gaps = 1062px total width
-# Centering start_x for Row 4 = 132
-buttonList.append(Button([132, 469], "Caps", [140, 90]))
-buttonList.append(Button([132 + 140 + gap, 469], "Space", [400, 90]))
-buttonList.append(Button([132 + 140 + gap + 400 + gap, 469], "Backspace", [150, 90]))
-buttonList.append(Button([132 + 140 + gap + 400 + gap + 150 + gap, 469], "Enter", [150, 90]))
-buttonList.append(Button([132 + 140 + gap + 400 + gap + 150 + gap + 150 + gap, 469], "Clear", [150, 90]))
+# Centering start_x for Row 4 = 166
+buttonList.append(Button([166, 449], "Caps", [140, 90]))
+buttonList.append(Button([166 + 140 + gap, 449], "Space", [400, 90]))
+buttonList.append(Button([166 + 140 + gap + 400 + gap, 449], "Backspace", [150, 90]))
+buttonList.append(Button([166 + 140 + gap + 400 + gap + 150 + gap, 449], "Enter", [150, 90]))
+buttonList.append(Button([166 + 140 + gap + 400 + gap + 150 + gap + 150 + gap, 449], "Clear", [150, 90]))
 
 def drawAll(img, buttonList, active_button=None, clicked_button=None, isCaps=True):
     """
@@ -84,8 +84,8 @@ def drawAll(img, buttonList, active_button=None, clicked_button=None, isCaps=Tru
             border_color = (255, 120, 255)
             text_color = (255, 255, 255)
         else:
-            bg_color = (105, 30, 8)        # A bit darker navy blue for default state (BGR)
-            border_color = (150, 45, 12)   # Dark blue border outline
+            bg_color = (80, 20, 5)         # Even darker midnight blue for default state (BGR)
+            border_color = (115, 30, 8)    # Thin border outline
             text_color = (255, 255, 255)
             
         # Draw key backgrounds and borders
@@ -113,20 +113,20 @@ def drawAll(img, buttonList, active_button=None, clicked_button=None, isCaps=Tru
     cv2.addWeighted(overlay_keys, alpha_keys, img, 1 - alpha_keys, 0, img)
     return img
 
-def drawTextBox(img, text, isCaps):
+def drawTextBox(img, text):
     """
     Renders a stylized text display field showing current typing progress and cursors.
     Makes the background panel extremely translucent while keeping the text and borders sharp.
     """
     # Stage 1: Draw highly translucent textbox background panel
     overlay_bg = img.copy()
-    cv2.rectangle(overlay_bg, (132, 15), (1194, 95), (35, 25, 40), cv2.FILLED)
+    cv2.rectangle(overlay_bg, (166, 15), (1228, 95), (35, 25, 40), cv2.FILLED)
     alpha_bg = 0.10 # Very translucent textbox background fill (increased transparency)
     cv2.addWeighted(overlay_bg, alpha_bg, img, 1 - alpha_bg, 0, img)
     
-    # Stage 2: Draw crisp text, border, and status badge
+    # Stage 2: Draw crisp text and border
     overlay_fg = img.copy()
-    cv2.rectangle(overlay_fg, (132, 15), (1194, 95), (150, 70, 180), 2) # Sharp border
+    cv2.rectangle(overlay_fg, (166, 15), (1228, 95), (150, 70, 180), 2) # Sharp border
     
     # Blinking terminal cursor
     cursor = "|" if int(time.time() * 2.5) % 2 == 0 else ""
@@ -134,49 +134,31 @@ def drawTextBox(img, text, isCaps):
     
     font = cv2.FONT_HERSHEY_DUPLEX
     font_scale = 1.1
-    thickness = 2
+    thickness = 3 # Bold font thickness
     
     # Prevent text overflow (truncate from left to keep latest typing visible)
     while len(display_text) > 0:
         size = cv2.getTextSize(display_text, font, font_scale, thickness)[0]
-        if size[0] < (1194 - 132 - 40): # Full width margin since badge is outside now
+        if size[0] < (1228 - 166 - 40): # Full width margin
             break
         display_text = display_text[1:]
         
-    # Render typing text
+    # Render typing text in bold black
     text_y = 15 + (80 + 20) // 2
-    cv2.putText(overlay_fg, display_text, (160, text_y), font, font_scale, (255, 255, 255), thickness, cv2.LINE_AA)
-    
-    # Render Caps Lock overlay badge outside the text box on the right
-    badge_x = 1198
-    badge_y = 30
-    badge_w = 75
-    badge_h = 50
-    badge_bg = (100, 30, 120) if isCaps else (50, 50, 50)
-    badge_border = (200, 80, 220) if isCaps else (100, 100, 100)
-    
-    cv2.rectangle(overlay_fg, (badge_x, badge_y), (badge_x + badge_w, badge_y + badge_h), badge_bg, cv2.FILLED)
-    cv2.rectangle(overlay_fg, (badge_x, badge_y), (badge_x + badge_w, badge_y + badge_h), badge_border, 1)
-    
-    badge_text = "CAPS ON" if isCaps else "caps off"
-    badge_font_scale = 0.45 # Slightly smaller font scale to fit inside 75px width
-    badge_text_size = cv2.getTextSize(badge_text, font, badge_font_scale, 1)[0]
-    badge_text_x = badge_x + (badge_w - badge_text_size[0]) // 2
-    badge_text_y = badge_y + (badge_h + badge_text_size[1]) // 2
-    cv2.putText(overlay_fg, badge_text, (badge_text_x, badge_text_y), font, badge_font_scale, (255, 255, 255), 1, cv2.LINE_AA)
+    cv2.putText(overlay_fg, display_text, (196, text_y), font, font_scale, (0, 0, 0), thickness, cv2.LINE_AA)
     
     alpha_fg = 0.85 # High opacity for text and borders
     cv2.addWeighted(overlay_fg, alpha_fg, img, 1 - alpha_fg, 0, img)
     return img
 
-def drawSidePanel(img, lmList, active_button, wpm, total_keys_pressed):
+def drawSidePanel(img, lmList, active_button, wpm, total_keys_pressed, isCaps):
     """
     Renders a simple, highly visual sidebar HUD in the left margin.
     Contains hand connection status, hovered key target, a live click press-meter, and typing stats.
     """
     overlay = img.copy()
     
-    # Side panel bounds: X: 20 to 110, Y: 15 to 511 (fits cleanly in left margin)
+    # Side panel bounds: X: 20 to 112, Y: 15 to 511 (fits cleanly in left margin)
     cv2.rectangle(overlay, (20, 15), (112, 511), (30, 20, 35), cv2.FILLED)
     cv2.rectangle(overlay, (20, 15), (112, 511), (150, 70, 180), 2) # Elegant purple border
     
@@ -228,8 +210,8 @@ def drawSidePanel(img, lmList, active_button, wpm, total_keys_pressed):
     # Fill progress bar based on percentage
     if pct > 0:
         fill_h = int(bar_h * (pct / 100.0))
-        # Turn green if clicked (>=95%), dark blue color (150, 45, 12) otherwise
-        fill_color = (40, 220, 80) if pct >= 95 else (150, 45, 12)
+        # Turn green if clicked (>=95%), dark blue color (115, 30, 8) otherwise
+        fill_color = (40, 220, 80) if pct >= 95 else (115, 30, 8)
         cv2.rectangle(overlay, (47, bar_y_end - fill_h), (85, bar_y_end - 1), fill_color, cv2.FILLED)
         
     # Render percentage text below bar
@@ -238,13 +220,18 @@ def drawSidePanel(img, lmList, active_button, wpm, total_keys_pressed):
     cv2.putText(overlay, pct_text, (66 - pct_size[0] // 2, bar_y_end + 18), font, 0.4, (235, 235, 235), 1, cv2.LINE_AA)
     
     # 4. Typing Statistics
-    cv2.putText(overlay, "STATS", (28, 415), font, 0.45, (150, 150, 150), 1, cv2.LINE_AA)
+    cv2.putText(overlay, "STATS", (28, 405), font, 0.45, (150, 150, 150), 1, cv2.LINE_AA)
     
     wpm_text = f"WPM: {wpm}"
     keys_text = f"Keys: {total_keys_pressed}"
+    caps_text = "CAPS: ON" if isCaps else "CAPS: OFF"
     
-    cv2.putText(overlay, wpm_text, (28, 445), font, 0.4, (255, 255, 255), 1, cv2.LINE_AA)
-    cv2.putText(overlay, keys_text, (28, 475), font, 0.4, (255, 255, 255), 1, cv2.LINE_AA)
+    cv2.putText(overlay, wpm_text, (28, 430), font, 0.4, (255, 255, 255), 1, cv2.LINE_AA)
+    cv2.putText(overlay, keys_text, (28, 455), font, 0.4, (255, 255, 255), 1, cv2.LINE_AA)
+    
+    # Highlight Caps Lock in purple if active, grey otherwise
+    caps_color = (220, 80, 200) if isCaps else (150, 150, 150)
+    cv2.putText(overlay, caps_text, (28, 480), font, 0.4, caps_color, 1, cv2.LINE_AA)
     
     # Apply alpha blending for translucent look (match side panel transparency)
     alpha = 0.75
@@ -385,8 +372,8 @@ while True:
         
     # Render layout and textbox overlay
     img = drawAll(img, buttonList, active_button, clicked_key, isCaps)
-    img = drawTextBox(img, finalText, isCaps)
-    img = drawSidePanel(img, lmList, active_button, wpm, total_keys_pressed)
+    img = drawTextBox(img, finalText)
+    img = drawSidePanel(img, lmList, active_button, wpm, total_keys_pressed, isCaps)
     
     cv2.imshow("Premium Virtual Keyboard", img)
     
