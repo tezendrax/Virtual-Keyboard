@@ -84,8 +84,8 @@ def drawAll(img, buttonList, active_button=None, clicked_button=None, isCaps=Tru
             border_color = (255, 120, 255)
             text_color = (255, 255, 255)
         else:
-            bg_color = (80, 20, 5)         # Even darker midnight blue for default state (BGR)
-            border_color = (115, 30, 8)    # Thin border outline
+            bg_color = (180, 80, 25)       # Light blue for default state (BGR)
+            border_color = (230, 110, 45)  # Light blue border outline
             text_color = (255, 255, 255)
             
         # Draw key backgrounds and borders
@@ -210,8 +210,8 @@ def drawSidePanel(img, lmList, active_button, wpm, total_keys_pressed, isCaps):
     # Fill progress bar based on percentage
     if pct > 0:
         fill_h = int(bar_h * (pct / 100.0))
-        # Turn green if clicked (>=95%), dark blue color (115, 30, 8) otherwise
-        fill_color = (40, 220, 80) if pct >= 95 else (115, 30, 8)
+        # Turn green if clicked (>=95%), light blue color (230, 110, 45) otherwise
+        fill_color = (40, 220, 80) if pct >= 95 else (230, 110, 45)
         cv2.rectangle(overlay, (47, bar_y_end - fill_h), (85, bar_y_end - 1), fill_color, cv2.FILLED)
         
     # Render percentage text below bar
