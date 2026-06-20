@@ -76,13 +76,13 @@ def drawAll(img, buttonList, active_button=None, clicked_button=None, isCaps=Tru
         
         # Decide styling based on button state (Normal, Hover, Clicked)
         if clicked_button == button:
-            bg_color = (40, 220, 80)      # Bright green for active click
-            border_color = (80, 255, 120)
-            text_color = (0, 0, 0)
+            bg_color = (25, 130, 45)      # Deep dark green for active click
+            border_color = (45, 180, 65)  # Premium green border
+            text_color = (255, 255, 255)  # Crisp white text
         elif active_button == button:
-            bg_color = (180, 50, 180)     # Neon purple for hover
-            border_color = (255, 120, 255)
-            text_color = (255, 255, 255)
+            bg_color = (100, 15, 100)     # Rich dark purple for hover
+            border_color = (160, 30, 160) # Deep purple border
+            text_color = (255, 255, 255)  # Crisp white text
         else:
             bg_color = (255, 255, 255)     # Frosted white for default state
             border_color = (255, 255, 255) # Pure white border
@@ -116,17 +116,38 @@ def drawAll(img, buttonList, active_button=None, clicked_button=None, isCaps=Tru
 def drawTextBox(img, text):
     """
     Renders a stylized text display field showing current typing progress and cursors.
-    Makes the background panel extremely translucent while keeping the text and borders sharp.
+    Makes the background panel look like a premium Sci-Fi terminal HUD.
     """
-    # Stage 1: Draw highly translucent textbox background panel
+    # Stage 1: Draw translucent terminal glass panel
     overlay_bg = img.copy()
-    cv2.rectangle(overlay_bg, (166, 15), (1228, 95), (35, 25, 40), cv2.FILLED)
-    alpha_bg = 0.10 # Very translucent textbox background fill (increased transparency)
+    cv2.rectangle(overlay_bg, (166, 15), (1228, 95), (30, 20, 35), cv2.FILLED)
+    alpha_bg = 0.22 # Increased opacity for a rich glass screen panel look
     cv2.addWeighted(overlay_bg, alpha_bg, img, 1 - alpha_bg, 0, img)
     
-    # Stage 2: Draw crisp text and border
+    # Stage 2: Draw HUD elements, prompt, text, borders, and corner brackets
     overlay_fg = img.copy()
-    cv2.rectangle(overlay_fg, (166, 15), (1228, 95), (150, 70, 180), 2) # Sharp border
+    cv2.rectangle(overlay_fg, (166, 15), (1228, 95), (150, 70, 180), 2) # Sharp outer border
+    
+    # Draw futuristic neon cyber-tech corner brackets (magenta/purple accent)
+    corner_color = (220, 80, 255)
+    bracket_len = 15
+    thickness_bracket = 4
+    # Top-Left
+    cv2.line(overlay_fg, (166, 15), (166 + bracket_len, 15), corner_color, thickness_bracket)
+    cv2.line(overlay_fg, (166, 15), (166, 15 + bracket_len), corner_color, thickness_bracket)
+    # Top-Right
+    cv2.line(overlay_fg, (1228, 15), (1228 - bracket_len, 15), corner_color, thickness_bracket)
+    cv2.line(overlay_fg, (1228, 15), (1228, 15 + bracket_len), corner_color, thickness_bracket)
+    # Bottom-Left
+    cv2.line(overlay_fg, (166, 95), (166 + bracket_len, 95), corner_color, thickness_bracket)
+    cv2.line(overlay_fg, (166, 95), (166, 95 - bracket_len), corner_color, thickness_bracket)
+    # Bottom-Right
+    cv2.line(overlay_fg, (1228, 95), (1228 - bracket_len, 95), corner_color, thickness_bracket)
+    cv2.line(overlay_fg, (1228, 95), (1228, 95 - bracket_len), corner_color, thickness_bracket)
+    
+    # Draw "SYS.INPUT" badge tab on the top-left border
+    cv2.rectangle(overlay_fg, (186, 5), (300, 20), (150, 70, 180), cv2.FILLED)
+    cv2.putText(overlay_fg, "SYS.INPUT", (196, 16), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (255, 255, 255), 1, cv2.LINE_AA)
     
     # Blinking terminal cursor
     cursor = "|" if int(time.time() * 2.5) % 2 == 0 else ""
@@ -136,18 +157,32 @@ def drawTextBox(img, text):
     font_scale = 1.1
     thickness = 3 # Bold font thickness
     
+    # Define prompt prefix styling
+    prompt = "SYS > "
+    prompt_scale = 1.0
+    prompt_thickness = 2
+    prompt_color = (150, 70, 180) # Elegant purple prompt
+    prompt_size = cv2.getTextSize(prompt, font, prompt_scale, prompt_thickness)[0]
+    prompt_w = prompt_size[0]
+    
     # Prevent text overflow (truncate from left to keep latest typing visible)
+    max_width = 1228 - 166 - 50 - prompt_w
     while len(display_text) > 0:
         size = cv2.getTextSize(display_text, font, font_scale, thickness)[0]
-        if size[0] < (1228 - 166 - 40): # Full width margin
+        if size[0] < max_width:
             break
         display_text = display_text[1:]
         
-    # Render typing text in bold black
     text_y = 15 + (80 + 20) // 2
-    cv2.putText(overlay_fg, display_text, (196, text_y), font, font_scale, (0, 0, 0), thickness, cv2.LINE_AA)
     
-    alpha_fg = 0.85 # High opacity for text and borders
+    # Render terminal prompt
+    cv2.putText(overlay_fg, prompt, (186, text_y), font, prompt_scale, prompt_color, prompt_thickness, cv2.LINE_AA)
+    
+    # Render typing text in bold black (shifted after prompt)
+    text_x = 186 + prompt_w + 10
+    cv2.putText(overlay_fg, display_text, (text_x, text_y), font, font_scale, (0, 0, 0), thickness, cv2.LINE_AA)
+    
+    alpha_fg = 0.90 # High opacity for sharp UI details
     cv2.addWeighted(overlay_fg, alpha_fg, img, 1 - alpha_fg, 0, img)
     return img
 
@@ -158,9 +193,9 @@ def drawSidePanel(img, lmList, active_button, wpm, total_keys_pressed, isCaps):
     """
     overlay = img.copy()
     
-    # Side panel bounds: X: 20 to 112, Y: 15 to 511 (fits cleanly in left margin)
-    cv2.rectangle(overlay, (20, 15), (112, 511), (30, 20, 35), cv2.FILLED)
-    cv2.rectangle(overlay, (20, 15), (112, 511), (150, 70, 180), 2) # Elegant purple border
+    # Side panel bounds: X: 20 to 112, Y: 15 to 539 (aligned with keyboard bottom boundary)
+    cv2.rectangle(overlay, (20, 15), (112, 539), (30, 20, 35), cv2.FILLED)
+    cv2.rectangle(overlay, (20, 15), (112, 539), (150, 70, 180), 2) # Elegant purple border
     
     font = cv2.FONT_HERSHEY_DUPLEX
     
@@ -211,7 +246,7 @@ def drawSidePanel(img, lmList, active_button, wpm, total_keys_pressed, isCaps):
     if pct > 0:
         fill_h = int(bar_h * (pct / 100.0))
         # Turn green if clicked (>=95%), white color (255, 255, 255) otherwise
-        fill_color = (40, 220, 80) if pct >= 95 else (255, 255, 255)
+        fill_color = (25, 130, 45) if pct >= 95 else (255, 255, 255)
         cv2.rectangle(overlay, (47, bar_y_end - fill_h), (85, bar_y_end - 1), fill_color, cv2.FILLED)
         
     # Render percentage text below bar
@@ -219,19 +254,19 @@ def drawSidePanel(img, lmList, active_button, wpm, total_keys_pressed, isCaps):
     pct_size = cv2.getTextSize(pct_text, font, 0.4, 1)[0]
     cv2.putText(overlay, pct_text, (66 - pct_size[0] // 2, bar_y_end + 18), font, 0.4, (235, 235, 235), 1, cv2.LINE_AA)
     
-    # 4. Typing Statistics
-    cv2.putText(overlay, "STATS", (28, 405), font, 0.45, (150, 150, 150), 1, cv2.LINE_AA)
+    # 4. Typing Statistics (Spaced out for the longer side bar)
+    cv2.putText(overlay, "STATS", (28, 420), font, 0.45, (150, 150, 150), 1, cv2.LINE_AA)
     
     wpm_text = f"WPM: {wpm}"
     keys_text = f"Keys: {total_keys_pressed}"
     caps_text = "CAPS: ON" if isCaps else "CAPS: OFF"
     
-    cv2.putText(overlay, wpm_text, (28, 430), font, 0.4, (255, 255, 255), 1, cv2.LINE_AA)
-    cv2.putText(overlay, keys_text, (28, 455), font, 0.4, (255, 255, 255), 1, cv2.LINE_AA)
+    cv2.putText(overlay, wpm_text, (28, 450), font, 0.4, (255, 255, 255), 1, cv2.LINE_AA)
+    cv2.putText(overlay, keys_text, (28, 480), font, 0.4, (255, 255, 255), 1, cv2.LINE_AA)
     
     # Highlight Caps Lock in purple if active, grey otherwise
     caps_color = (220, 80, 200) if isCaps else (150, 150, 150)
-    cv2.putText(overlay, caps_text, (28, 480), font, 0.4, caps_color, 1, cv2.LINE_AA)
+    cv2.putText(overlay, caps_text, (28, 510), font, 0.4, caps_color, 1, cv2.LINE_AA)
     
     # Apply alpha blending for translucent look (match side panel transparency)
     alpha = 0.75
