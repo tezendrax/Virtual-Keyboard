@@ -84,9 +84,9 @@ def drawAll(img, buttonList, active_button=None, clicked_button=None, isCaps=Tru
             border_color = (160, 30, 160) # Deep purple border
             text_color = (255, 255, 255)  # Crisp white text
         else:
-            bg_color = (255, 255, 255)     # Frosted white for default state
-            border_color = (255, 255, 255) # Pure white border
-            text_color = (30, 30, 30)      # Dark grey text for crisp contrast
+            bg_color = (180, 80, 25)       # Light blue for default state (BGR)
+            border_color = (230, 110, 45)  # Light blue border outline
+            text_color = (255, 255, 255)   # Crisp white text
             
         # Draw key backgrounds and borders
         cv2.rectangle(overlay_keys, (x, y), (x + w, y + h), bg_color, cv2.FILLED)
@@ -99,7 +99,19 @@ def drawAll(img, buttonList, active_button=None, clicked_button=None, isCaps=Tru
             
         # Draw centered text inside keys
         font = cv2.FONT_HERSHEY_DUPLEX
-        font_scale = 0.9 if len(display_text) > 1 else 1.3
+        
+        # Optimize font size for special keys and standard keys
+        if display_text == "Caps":
+            font_scale = 1.15 # Centered and beautifully sized inside the Caps button
+        elif display_text == "Space":
+            font_scale = 1.1
+        elif display_text == "Backspace":
+            font_scale = 0.7  # Prevent overflow for longer word
+        elif display_text in ["Enter", "Clear"]:
+            font_scale = 0.95
+        else:
+            font_scale = 0.9 if len(display_text) > 1 else 1.3
+            
         thickness = 2
         text_size = cv2.getTextSize(display_text, font, font_scale, thickness)[0]
         text_w, text_h = text_size[0], text_size[1]
@@ -113,41 +125,20 @@ def drawAll(img, buttonList, active_button=None, clicked_button=None, isCaps=Tru
     cv2.addWeighted(overlay_keys, alpha_keys, img, 1 - alpha_keys, 0, img)
     return img
 
-def drawTextBox(img, text):
+def drawTextBox(img, text, isCaps):
     """
     Renders a stylized text display field showing current typing progress and cursors.
-    Makes the background panel look like a premium Sci-Fi terminal HUD.
+    Also displays the Caps Lock status badge outside the text box on the right.
     """
-    # Stage 1: Draw translucent terminal glass panel
+    # Stage 1: Draw highly translucent textbox background panel (166 to 1194)
     overlay_bg = img.copy()
-    cv2.rectangle(overlay_bg, (166, 15), (1228, 95), (30, 20, 35), cv2.FILLED)
-    alpha_bg = 0.22 # Increased opacity for a rich glass screen panel look
+    cv2.rectangle(overlay_bg, (166, 15), (1194, 95), (35, 25, 40), cv2.FILLED)
+    alpha_bg = 0.10 # Translucent textbox background fill
     cv2.addWeighted(overlay_bg, alpha_bg, img, 1 - alpha_bg, 0, img)
     
-    # Stage 2: Draw HUD elements, prompt, text, borders, and corner brackets
+    # Stage 2: Draw crisp text, border, and Caps Lock badge
     overlay_fg = img.copy()
-    cv2.rectangle(overlay_fg, (166, 15), (1228, 95), (150, 70, 180), 2) # Sharp outer border
-    
-    # Draw futuristic neon cyber-tech corner brackets (magenta/purple accent)
-    corner_color = (220, 80, 255)
-    bracket_len = 15
-    thickness_bracket = 4
-    # Top-Left
-    cv2.line(overlay_fg, (166, 15), (166 + bracket_len, 15), corner_color, thickness_bracket)
-    cv2.line(overlay_fg, (166, 15), (166, 15 + bracket_len), corner_color, thickness_bracket)
-    # Top-Right
-    cv2.line(overlay_fg, (1228, 15), (1228 - bracket_len, 15), corner_color, thickness_bracket)
-    cv2.line(overlay_fg, (1228, 15), (1228, 15 + bracket_len), corner_color, thickness_bracket)
-    # Bottom-Left
-    cv2.line(overlay_fg, (166, 95), (166 + bracket_len, 95), corner_color, thickness_bracket)
-    cv2.line(overlay_fg, (166, 95), (166, 95 - bracket_len), corner_color, thickness_bracket)
-    # Bottom-Right
-    cv2.line(overlay_fg, (1228, 95), (1228 - bracket_len, 95), corner_color, thickness_bracket)
-    cv2.line(overlay_fg, (1228, 95), (1228, 95 - bracket_len), corner_color, thickness_bracket)
-    
-    # Draw "SYS.INPUT" badge tab on the top-left border
-    cv2.rectangle(overlay_fg, (186, 5), (300, 20), (150, 70, 180), cv2.FILLED)
-    cv2.putText(overlay_fg, "SYS.INPUT", (196, 16), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (255, 255, 255), 1, cv2.LINE_AA)
+    cv2.rectangle(overlay_fg, (166, 15), (1194, 95), (150, 70, 180), 2) # Sharp border
     
     # Blinking terminal cursor
     cursor = "|" if int(time.time() * 2.5) % 2 == 0 else ""
@@ -157,32 +148,36 @@ def drawTextBox(img, text):
     font_scale = 1.1
     thickness = 3 # Bold font thickness
     
-    # Define prompt prefix styling
-    prompt = "SYS > "
-    prompt_scale = 1.0
-    prompt_thickness = 2
-    prompt_color = (150, 70, 180) # Elegant purple prompt
-    prompt_size = cv2.getTextSize(prompt, font, prompt_scale, prompt_thickness)[0]
-    prompt_w = prompt_size[0]
-    
-    # Prevent text overflow (truncate from left to keep latest typing visible)
-    max_width = 1228 - 166 - 50 - prompt_w
+    # Prevent text overflow
     while len(display_text) > 0:
         size = cv2.getTextSize(display_text, font, font_scale, thickness)[0]
-        if size[0] < max_width:
+        if size[0] < (1194 - 166 - 40): # Full width margin within textbox
             break
         display_text = display_text[1:]
         
+    # Render typing text in bold black
     text_y = 15 + (80 + 20) // 2
+    cv2.putText(overlay_fg, display_text, (196, text_y), font, font_scale, (0, 0, 0), thickness, cv2.LINE_AA)
     
-    # Render terminal prompt
-    cv2.putText(overlay_fg, prompt, (186, text_y), font, prompt_scale, prompt_color, prompt_thickness, cv2.LINE_AA)
+    # Render Caps Lock overlay badge outside the text box on the right
+    badge_x = 1198
+    badge_y = 30
+    badge_w = 72
+    badge_h = 50
+    badge_bg = (100, 30, 120) if isCaps else (50, 50, 50)
+    badge_border = (200, 80, 220) if isCaps else (100, 100, 100)
     
-    # Render typing text in bold black (shifted after prompt)
-    text_x = 186 + prompt_w + 10
-    cv2.putText(overlay_fg, display_text, (text_x, text_y), font, font_scale, (0, 0, 0), thickness, cv2.LINE_AA)
+    cv2.rectangle(overlay_fg, (badge_x, badge_y), (badge_x + badge_w, badge_y + badge_h), badge_bg, cv2.FILLED)
+    cv2.rectangle(overlay_fg, (badge_x, badge_y), (badge_x + badge_w, badge_y + badge_h), badge_border, 1)
     
-    alpha_fg = 0.90 # High opacity for sharp UI details
+    badge_text = "CAPS ON" if isCaps else "caps off"
+    badge_font_scale = 0.43
+    badge_text_size = cv2.getTextSize(badge_text, font, badge_font_scale, 1)[0]
+    badge_text_x = badge_x + (badge_w - badge_text_size[0]) // 2
+    badge_text_y = badge_y + (badge_h + badge_text_size[1]) // 2
+    cv2.putText(overlay_fg, badge_text, (badge_text_x, badge_text_y), font, badge_font_scale, (255, 255, 255), 1, cv2.LINE_AA)
+    
+    alpha_fg = 0.85 # High opacity for text and borders
     cv2.addWeighted(overlay_fg, alpha_fg, img, 1 - alpha_fg, 0, img)
     return img
 
@@ -407,7 +402,7 @@ while True:
         
     # Render layout and textbox overlay
     img = drawAll(img, buttonList, active_button, clicked_key, isCaps)
-    img = drawTextBox(img, finalText)
+    img = drawTextBox(img, finalText, isCaps)
     img = drawSidePanel(img, lmList, active_button, wpm, total_keys_pressed, isCaps)
     
     cv2.imshow("Premium Virtual Keyboard", img)
