@@ -46,22 +46,22 @@ start_x = 132
 gap = 18
 
 for j, key in enumerate(keys_row1):
-    buttonList.append(Button([start_x + j * (90 + gap), 115], key, [90, 90]))
+    buttonList.append(Button([start_x + j * (90 + gap), 145], key, [90, 90]))
 
 for j, key in enumerate(keys_row2):
-    buttonList.append(Button([start_x + j * (90 + gap), 217], key, [90, 90]))
+    buttonList.append(Button([start_x + j * (90 + gap), 253], key, [90, 90]))
 
 for j, key in enumerate(keys_row3):
-    buttonList.append(Button([start_x + j * (90 + gap), 319], key, [90, 90]))
+    buttonList.append(Button([start_x + j * (90 + gap), 361], key, [90, 90]))
 
-# Populate special keys (Shifted right and uplifted layout with extra spacing)
+# Populate special keys (Shifted right and shifted downwards layout with 18px gaps)
 # Caps(140), Space(400), Backspace(150), Enter(150), Clear(150) with 18px gaps = 1062px total width
 # Centering start_x for Row 4 = 132
-buttonList.append(Button([132, 421], "Caps", [140, 90]))
-buttonList.append(Button([132 + 140 + gap, 421], "Space", [400, 90]))
-buttonList.append(Button([132 + 140 + gap + 400 + gap, 421], "Backspace", [150, 90]))
-buttonList.append(Button([132 + 140 + gap + 400 + gap + 150 + gap, 421], "Enter", [150, 90]))
-buttonList.append(Button([132 + 140 + gap + 400 + gap + 150 + gap + 150 + gap, 421], "Clear", [150, 90]))
+buttonList.append(Button([132, 469], "Caps", [140, 90]))
+buttonList.append(Button([132 + 140 + gap, 469], "Space", [400, 90]))
+buttonList.append(Button([132 + 140 + gap + 400 + gap, 469], "Backspace", [150, 90]))
+buttonList.append(Button([132 + 140 + gap + 400 + gap + 150 + gap, 469], "Enter", [150, 90]))
+buttonList.append(Button([132 + 140 + gap + 400 + gap + 150 + gap + 150 + gap, 469], "Clear", [150, 90]))
 
 def drawAll(img, buttonList, active_button=None, clicked_button=None, isCaps=True):
     """
@@ -90,7 +90,7 @@ def drawAll(img, buttonList, active_button=None, clicked_button=None, isCaps=Tru
             
         # Draw key backgrounds and borders
         cv2.rectangle(overlay_keys, (x, y), (x + w, y + h), bg_color, cv2.FILLED)
-        cv2.rectangle(overlay_keys, (x, y), (x + w, y + h), border_color, 2)
+        cv2.rectangle(overlay_keys, (x, y), (x + w, y + h), border_color, 1) # Thin border
         
         # Adjust capitalization of key text
         display_text = button.text
@@ -136,10 +136,10 @@ def drawTextBox(img, text, isCaps):
     font_scale = 1.1
     thickness = 2
     
-    # Prevent text overflow (truncate from left to keep latest typing visible, leaving room for right-aligned badge)
+    # Prevent text overflow (truncate from left to keep latest typing visible)
     while len(display_text) > 0:
         size = cv2.getTextSize(display_text, font, font_scale, thickness)[0]
-        if size[0] < 880: # 880px limit prevents text from overlapping the badge
+        if size[0] < (1194 - 132 - 40): # Full width margin since badge is outside now
             break
         display_text = display_text[1:]
         
@@ -147,10 +147,10 @@ def drawTextBox(img, text, isCaps):
     text_y = 15 + (80 + 20) // 2
     cv2.putText(overlay_fg, display_text, (160, text_y), font, font_scale, (255, 255, 255), thickness, cv2.LINE_AA)
     
-    # Render Caps Lock overlay badge inside the text box on the far right
-    badge_x = 1069
+    # Render Caps Lock overlay badge outside the text box on the right
+    badge_x = 1198
     badge_y = 30
-    badge_w = 110
+    badge_w = 75
     badge_h = 50
     badge_bg = (100, 30, 120) if isCaps else (50, 50, 50)
     badge_border = (200, 80, 220) if isCaps else (100, 100, 100)
@@ -159,7 +159,7 @@ def drawTextBox(img, text, isCaps):
     cv2.rectangle(overlay_fg, (badge_x, badge_y), (badge_x + badge_w, badge_y + badge_h), badge_border, 1)
     
     badge_text = "CAPS ON" if isCaps else "caps off"
-    badge_font_scale = 0.5
+    badge_font_scale = 0.45 # Slightly smaller font scale to fit inside 75px width
     badge_text_size = cv2.getTextSize(badge_text, font, badge_font_scale, 1)[0]
     badge_text_x = badge_x + (badge_w - badge_text_size[0]) // 2
     badge_text_y = badge_y + (badge_h + badge_text_size[1]) // 2
