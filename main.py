@@ -17,6 +17,10 @@ finalText = ""
 isCaps = True
 keyboard = Controller()
 
+# WPM and Keystroke tracking variables for the HUD side panel
+typing_start_time = None
+total_keys_pressed = 0
+
 # Debounce and click variables
 last_click_time = 0
 click_cooldown = 0.45  # Cooldown in seconds to prevent double typing
@@ -80,8 +84,8 @@ def drawAll(img, buttonList, active_button=None, clicked_button=None, isCaps=Tru
             border_color = (255, 120, 255)
             text_color = (255, 255, 255)
         else:
-            bg_color = (200, 160, 80)     # Sky blue for default state
-            border_color = (235, 190, 120) # Sky blue border
+            bg_color = (130, 45, 20)       # Navy blue for default state
+            border_color = (180, 75, 35)   # Light navy blue border
             text_color = (255, 255, 255)
             
         # Draw key backgrounds and borders
@@ -163,6 +167,88 @@ def drawTextBox(img, text, isCaps):
     
     alpha_fg = 0.85 # High opacity for text and borders
     cv2.addWeighted(overlay_fg, alpha_fg, img, 1 - alpha_fg, 0, img)
+    return img
+
+def drawSidePanel(img, lmList, active_button, wpm, total_keys_pressed):
+    """
+    Renders a simple, highly visual sidebar HUD in the left margin.
+    Contains hand connection status, hovered key target, a live click press-meter, and typing stats.
+    """
+    overlay = img.copy()
+    
+    # Side panel bounds: X: 20 to 110, Y: 15 to 511 (fits cleanly in left margin)
+    cv2.rectangle(overlay, (20, 15), (112, 511), (30, 20, 35), cv2.FILLED)
+    cv2.rectangle(overlay, (20, 15), (112, 511), (150, 70, 180), 2) # Elegant purple border
+    
+    font = cv2.FONT_HERSHEY_DUPLEX
+    
+    # 1. Hand Connection Status
+    status_text = "HAND"
+    cv2.putText(overlay, status_text, (28, 45), font, 0.45, (150, 150, 150), 1, cv2.LINE_AA)
+    
+    if lmList:
+        cv2.rectangle(overlay, (28, 55), (104, 80), (40, 180, 80), cv2.FILLED) # Green box
+        cv2.putText(overlay, "ONLINE", (35, 73), font, 0.4, (255, 255, 255), 1, cv2.LINE_AA)
+    else:
+        cv2.rectangle(overlay, (28, 55), (104, 80), (50, 50, 200), cv2.FILLED) # Red box
+        cv2.putText(overlay, "OFFLINE", (31, 73), font, 0.4, (255, 255, 255), 1, cv2.LINE_AA)
+        
+    # 2. Target Key currently hovered
+    cv2.putText(overlay, "TARGET", (28, 115), font, 0.45, (150, 150, 150), 1, cv2.LINE_AA)
+    target_char = active_button.text if active_button else "-"
+    
+    # Draw key box display
+    cv2.rectangle(overlay, (36, 125), (96, 185), (60, 45, 55), cv2.FILLED)
+    cv2.rectangle(overlay, (36, 125), (96, 185), (95, 80, 100), 1)
+    
+    t_size = cv2.getTextSize(target_char, font, 0.8, 2)[0]
+    t_x = 36 + (60 - t_size[0]) // 2
+    t_y = 125 + (60 + t_size[1]) // 2
+    cv2.putText(overlay, target_char, (t_x, t_y), font, 0.8, (255, 255, 255), 2, cv2.LINE_AA)
+    
+    # 3. Press Click Meter
+    cv2.putText(overlay, "PRESS", (28, 220), font, 0.45, (150, 150, 150), 1, cv2.LINE_AA)
+    
+    # Calculate index-middle pinch percentage
+    pct = 0
+    if lmList:
+        idx_x, idx_y = lmList[8][0], lmList[8][1]
+        mid_x, mid_y = lmList[12][0], lmList[12][1]
+        distance = np.hypot(idx_x - mid_x, idx_y - mid_y)
+        # Map distance [35, 100] to [100, 0]
+        pct = int(max(0, min(100, (100 - distance) / (100 - 35) * 100)))
+        
+    # Draw progress bar container (vertical bar)
+    bar_y_start = 230
+    bar_y_end = 360
+    bar_h = bar_y_end - bar_y_start # 130px
+    cv2.rectangle(overlay, (46, bar_y_start), (86, bar_y_end), (50, 40, 50), cv2.FILLED)
+    cv2.rectangle(overlay, (46, bar_y_start), (86, bar_y_end), (100, 80, 100), 1)
+    
+    # Fill progress bar based on percentage
+    if pct > 0:
+        fill_h = int(bar_h * (pct / 100.0))
+        # Turn green if clicked (>=95%), navy blue color (180, 75, 35) otherwise
+        fill_color = (40, 220, 80) if pct >= 95 else (180, 75, 35)
+        cv2.rectangle(overlay, (47, bar_y_end - fill_h), (85, bar_y_end - 1), fill_color, cv2.FILLED)
+        
+    # Render percentage text below bar
+    pct_text = f"{pct}%"
+    pct_size = cv2.getTextSize(pct_text, font, 0.4, 1)[0]
+    cv2.putText(overlay, pct_text, (66 - pct_size[0] // 2, bar_y_end + 18), font, 0.4, (235, 235, 235), 1, cv2.LINE_AA)
+    
+    # 4. Typing Statistics
+    cv2.putText(overlay, "STATS", (28, 415), font, 0.45, (150, 150, 150), 1, cv2.LINE_AA)
+    
+    wpm_text = f"WPM: {wpm}"
+    keys_text = f"Keys: {total_keys_pressed}"
+    
+    cv2.putText(overlay, wpm_text, (28, 445), font, 0.4, (255, 255, 255), 1, cv2.LINE_AA)
+    cv2.putText(overlay, keys_text, (28, 475), font, 0.4, (255, 255, 255), 1, cv2.LINE_AA)
+    
+    # Apply alpha blending for translucent look (match side panel transparency)
+    alpha = 0.75
+    cv2.addWeighted(overlay, alpha, img, 1 - alpha, 0, img)
     return img
 
 print("Initializing camera feed... Hover index finger to target keys. Pinch index & middle finger tips to type.")
@@ -250,29 +336,39 @@ while True:
                 clicked_key_timer = 6 # Render green click state for 6 frames
                 last_click_time = current_time
                 
+                # Start WPM tracking timer on first keypress
+                if typing_start_time is None:
+                    typing_start_time = current_time
+                
                 # Execute keyboard inputs and feed to active OS app
                 key_text = active_button.text
                 if key_text == "Space":
                     keyboard.type(" ")
                     finalText += " "
+                    total_keys_pressed += 1
                 elif key_text == "Backspace":
                     keyboard.press(Key.backspace)
                     keyboard.release(Key.backspace)
                     if len(finalText) > 0:
                         finalText = finalText[:-1]
+                    total_keys_pressed = max(0, total_keys_pressed - 1)
                 elif key_text == "Caps":
                     isCaps = not isCaps
                 elif key_text == "Clear":
                     finalText = ""
+                    typing_start_time = None
+                    total_keys_pressed = 0
                 elif key_text == "Enter":
                     keyboard.press(Key.enter)
                     keyboard.release(Key.enter)
                     finalText += "\n"
+                    total_keys_pressed += 1
                 else:
                     # Append letter key (upper or lowercase)
                     char = key_text.upper() if isCaps else key_text.lower()
                     keyboard.type(char)
                     finalText += char
+                    total_keys_pressed += 1
 
     # Manage clicked highlight timer
     if clicked_key_timer > 0:
@@ -280,9 +376,17 @@ while True:
     else:
         clicked_key = None
         
+    # Calculate WPM (Words Per Minute)
+    wpm = 0
+    if typing_start_time is not None:
+        elapsed = (time.time() - typing_start_time) / 60.0
+        if elapsed > 0.005: # Calculate after 0.3 seconds to avoid infinity spike
+            wpm = int((total_keys_pressed / 5.0) / elapsed)
+        
     # Render layout and textbox overlay
     img = drawAll(img, buttonList, active_button, clicked_key, isCaps)
     img = drawTextBox(img, finalText, isCaps)
+    img = drawSidePanel(img, lmList, active_button, wpm, total_keys_pressed)
     
     cv2.imshow("Premium Virtual Keyboard", img)
     
